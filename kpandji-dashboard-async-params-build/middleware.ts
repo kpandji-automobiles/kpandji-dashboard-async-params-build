@@ -1,0 +1,289 @@
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
+import { getRedirectForRole } from "@/lib/role-redirects";
+import { resolveEffectiveUserRole } from "@/lib/resolve-effective-user-role";
+import { UserRole } from "@/lib/user-role-constants";
+const isPublicRoute = createRouteMatcher([
+	"/",
+	"/sign-in(.*)",
+	"/sign-up(.*)",
+	"/api/webhooks/(.*)",
+	"/api/numero-chassis",
+	"/api/dev-bypass",
+	"/api/health",
+	"/api/ping",
+	"/api/reservation-vehicule",
+	// Auto-inscription des participants via QR code (accessible sans compte)
+	"/participer/(.*)",
+	"/rapport-sav/(.*)",
+	"/api/public/(.*)",
+]);
+// Skip middleware for prospects API - uses userId from body, avoids fetch issues
+const isProspectsApi = createRouteMatcher(["/api/prospects/(.*)"]);
+const isSavApi = createRouteMatcher(["/api/sav/(.*)"]);
+const isRendezVousApi = createRouteMatcher(["/api/rendez-vous(.*)"]);
+const isRapportRendezVousApi = createRouteMatcher(["/api/rapport-rendez-vous(.*)"]);
+const isFactureApi = createRouteMatcher(["/api/facture(.*)"]);
+const isReservationVehiculeApi = createRouteMatcher(["/api/reservation-vehicule(.*)"]);
+
+/** Avoid createRouteMatcher misses for /api/commercial-documentation/:id (must bypass before auth/onboarding redirects). */
+function isCommercialDocumentationDownloadPath(pathname: string): boolean {
+	return (
+		pathname.startsWith("/api/commercial-documentation/") ||
+		pathname === "/api/commercial-documentation" ||
+		pathname.startsWith("/api/documentation/")
+	);
+}
+const isOnboardingRoute = createRouteMatcher(["/onboarding"]);
+
+const isAdminRoute = createRouteMatcher(["/admin", "/admin/(.*)"]);
+const isEmployeeRoute = createRouteMatcher(["/employee", "/employee/(.*)"]);
+const isManagerRoute = createRouteMatcher(["/manager", "/manager/(.*)"]);
+const isJuridiqueRoute = createRouteMatcher(["/juridique", "/juridique/(.*)"]);	
+const isMagasinierRoute = createRouteMatcher([
+	"/magasinier",
+	"/magasinier/(.*)",
+]);
+const isChefusineRoute = createRouteMatcher(["/chefusine", "/chefusine/(.*)"]);
+const isChefequipeRoute = createRouteMatcher([
+	"/chefequipe",
+	"/chefequipe/(.*)",
+]);
+const isChefqualiteRoute = createRouteMatcher([
+	"/chefqualite",
+	"/chefqualite/(.*)",
+]);
+const isCommercialRoute = createRouteMatcher([
+	"/commercial",
+	"/commercial/(.*)",
+]);
+const isResponsablecommercialRoute = createRouteMatcher([
+	"/responsablecommercial",
+	"/responsablecommercial/(.*)",
+]);
+const isRhRoute = createRouteMatcher(["/rh", "/rh/(.*)"]);
+const isSavRoute = createRouteMatcher(["/sav", "/sav/(.*)"]);
+const isLogistiqueRoute = createRouteMatcher([
+	"/logistique",
+	"/logistique/(.*)",
+]);
+const isFinanceRoute = createRouteMatcher(["/finance", "/finance/(.*)"]);
+
+const isDirecteurGeneralRoute = createRouteMatcher([
+	"/directeurgeneral",
+	"/directeurgeneral/(.*)",
+]);
+const isClienteleRoute = createRouteMatcher([
+	"/clientele",
+	"/clientele/(.*)",
+]);
+const isComptableRoute = createRouteMatcher(["/comptable", "/comptable/(.*)"]);
+const isConcessionnaireRoute = createRouteMatcher([
+	"/concessionnaire",
+	"/concessionnaire/(.*)",
+]);
+const isSuperviseurRoute = createRouteMatcher([
+	"/superviseur",
+	"/superviseur/(.*)",
+]);
+const isCommunicationRoute = createRouteMatcher([
+	"/communication",
+	"/communication/(.*)",
+]);
+const isInfographieRoute = createRouteMatcher([
+	"/infographie",
+	"/infographie/(.*)",
+]);
+const isCommunityManagerRoute = createRouteMatcher([
+	"/communityManager",
+	"/communityManager/(.*)",
+]);
+const isAssistanteRoute = createRouteMatcher([
+	"/assistante",
+	"/assistante/(.*)",
+]);
+const isDeveloppeurRoute = createRouteMatcher([
+	"/developpeur",
+	"/developpeur/(.*)",
+]);
+const isDesignerRoute = createRouteMatcher([
+	"/designer",
+	"/designer/(.*)",
+]);
+const isMarketingRoute = createRouteMatcher([
+	"/marketing",
+	"/marketing/(.*)",
+]);
+
+
+type RouteMatcher = (req: NextRequest) => boolean;
+const ROLE_ROUTES: Array<{ match: RouteMatcher; role: string }> = [
+	{ match: isAdminRoute, role: "ADMIN" },
+	{ match: isEmployeeRoute, role: "EMPLOYEE" },
+	{ match: isManagerRoute, role: "MANAGER" },
+	{ match: isChefusineRoute, role: "CHEFUSINE" },
+	{ match: isJuridiqueRoute, role: "JURIDIQUE" },
+	{ match: isChefequipeRoute, role: "CHEFEQUIPE" },
+	{ match: isMagasinierRoute, role: "MAGASINIER" },
+	{ match: isChefqualiteRoute, role: "CHEFQUALITE" },
+	{ match: isCommercialRoute, role: "COMMERCIAL" },
+	{ match: isResponsablecommercialRoute, role: "RESPONSABLE_COMMERCIAL" },
+	{ match: isCommunicationRoute, role: "COMMUNICATION" },
+	{ match: isRhRoute, role: "RH" },
+	{ match: isSavRoute, role: "SAV" },
+	{ match: isLogistiqueRoute, role: "LOGISTIQUE" },
+	{ match: isFinanceRoute, role: "FINANCE" },
+	{ match: isDirecteurGeneralRoute, role: "DIRECTEUR_GENERAL" },
+	{ match: isClienteleRoute, role: "CLIENTELLE" },
+	{ match: isComptableRoute, role: "COMPTABLE" },
+	{ match: isConcessionnaireRoute, role: "CONCESSIONAIRE" },
+	{ match: isSuperviseurRoute, role: "SUPERVISEUR" },
+	{ match: isInfographieRoute, role: "INFOGRAPHIE" },
+	{ match: isCommunityManagerRoute, role: "COMMUNITY_MANAGER" },
+	{ match: isAssistanteRoute, role: "ASSISTANTE" },
+	{ match: isDeveloppeurRoute, role: "DEVELOPPEUR" },
+	{ match: isDesignerRoute, role: "DESIGNER" },
+	{ match: isMarketingRoute, role: "MARKETING" },
+
+];
+
+/** Windows clocks often lag NTP by >5s (Clerk default), which rejects JWTs as iat-in-the-future. */
+const CLERK_OPTIONS = {
+	clockSkewInMs: 30_000,
+} as const;
+
+const clerkHandler = clerkMiddleware(async (auth, req: NextRequest) => {
+	const { userId, sessionClaims, redirectToSignIn } = await auth();
+
+	// Handle root path redirects based on role and onboarding status
+	if (
+		userId &&
+		req.nextUrl.pathname === "/" &&
+		!sessionClaims?.metadata?.onboardingCompleted
+	) {
+		const onboardingUrl = new URL("/onboarding", req.url);
+		return NextResponse.redirect(onboardingUrl);
+	}
+
+	if (
+		userId &&
+		req.nextUrl.pathname === "/" &&
+		sessionClaims?.metadata?.onboardingCompleted
+	) {
+		const effectiveRole = await resolveEffectiveUserRole(
+			userId,
+			sessionClaims?.metadata?.role,
+		);
+		const redirectUrl = getRedirectForRole(effectiveRole);
+		if (redirectUrl) {
+			return NextResponse.redirect(new URL(redirectUrl, req.url));
+		}
+		return NextResponse.next();
+	}
+
+	if (isPublicRoute(req)) return NextResponse.next();
+	if (isProspectsApi(req)) return NextResponse.next();
+	if (isSavApi(req)) return NextResponse.next();
+	if (isRendezVousApi(req)) return NextResponse.next();
+	if (isRapportRendezVousApi(req)) return NextResponse.next();
+	if (isFactureApi(req)) return NextResponse.next();
+	if (isReservationVehiculeApi(req)) return NextResponse.next();
+	if (isCommercialDocumentationDownloadPath(req.nextUrl.pathname))
+		return NextResponse.next();
+
+	if (!userId && !isPublicRoute(req)) {
+		return redirectToSignIn({
+			returnBackUrl: req.url,
+		});
+	}
+	
+
+	// Handle onboarding route redirects for completed users
+	if (
+		userId &&
+		sessionClaims?.metadata?.onboardingCompleted &&
+		isOnboardingRoute(req)
+	) {
+		const effectiveRole = await resolveEffectiveUserRole(
+			userId,
+			sessionClaims?.metadata?.role,
+		);
+		const redirectUrl = getRedirectForRole(effectiveRole);
+		if (redirectUrl) {
+			return NextResponse.redirect(new URL(redirectUrl, req.url));
+		}
+		return NextResponse.next();
+	}
+
+	// Handle onboarding completion via query parameter
+	if (userId && isOnboardingRoute(req)) {
+		if (req.nextUrl.searchParams.get("onboardingCompleted")) {
+			const effectiveRole = await resolveEffectiveUserRole(
+				userId,
+				sessionClaims?.metadata?.role,
+			);
+			const redirectUrl = getRedirectForRole(effectiveRole);
+			if (redirectUrl) {
+				return NextResponse.redirect(new URL(redirectUrl, req.url));
+			}
+		}
+		return NextResponse.next();
+	}
+
+	// Redirect users without completed onboarding
+	if (
+		userId &&
+		!sessionClaims?.metadata?.onboardingCompleted &&
+		!isOnboardingRoute(req)
+	) {
+		const onboardingUrl = new URL("/onboarding", req.url);
+		return NextResponse.redirect(onboardingUrl);
+	}
+
+	// Role-based route protection
+	const effectiveRole = userId
+		? await resolveEffectiveUserRole(userId, sessionClaims?.metadata?.role)
+		: null;
+
+	for (const { match, role } of ROLE_ROUTES) {
+		if (match(req)) {
+			if (effectiveRole === role) {
+				return NextResponse.next();
+			}
+			// Generic employees land on the manager dashboard
+			if (role === "MANAGER" && effectiveRole === UserRole.EMPLOYEE) {
+				return NextResponse.next();
+			}
+			return NextResponse.redirect(new URL("/", req.url));
+		}
+	}
+
+	return NextResponse.next();
+}, CLERK_OPTIONS);
+
+// Minimal Clerk handler for server actions: runs Clerk so auth() works, but no redirects
+const serverActionClerkHandler = clerkMiddleware(() => NextResponse.next(), CLERK_OPTIONS);
+
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
+	// Server actions: run Clerk (no redirects) so auth() works in server actions
+	if (req.headers.get("Next-Action")) {
+		return serverActionClerkHandler(req, event);
+	}
+	// Dev bypass: skip auth when Clerk fails to load (ad-blocker, etc.)
+	if (
+		process.env.NODE_ENV === "development" &&
+		req.cookies.get("__clerk_dev_bypass")?.value === "1"
+	) {
+		return NextResponse.next();
+	}
+	return clerkHandler(req, event);
+}
+
+export const config = {
+	matcher: [
+		// Skip Next.js internals and all static files, unless found in search params
+		"/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|pdf|docx?|pptx?|odt|ods|rtf|txt|xlsx?|zip|webmanifest|mp4|webm|mov|m4v)).*)",
+		// Always run for API routes
+		"/(api|trpc)(.*)",
+	],
+};

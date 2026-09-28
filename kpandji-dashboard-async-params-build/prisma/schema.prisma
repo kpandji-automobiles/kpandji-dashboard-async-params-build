@@ -1,0 +1,3579 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                                 String                              @id @default(uuid())
+  clerkId                            String                              @unique
+  email                              String                              @unique
+  firstName                          String
+  lastName                           String
+  role                               UserRole                            @default(EMPLOYEE)
+  department                         String?
+  createdAt                          DateTime                            @default(now())
+  updatedAt                          DateTime                            @updatedAt
+  telephone                          String?
+  CalendrierSortie                   CalendrierSortie[]
+  Client                             Client[]
+  Client_entreprise                  Client_entreprise[]
+  CommunicationProject               CommunicationProject[]
+  Employee                           Employee[]
+  Facture                            Facture[]
+  ReceivedMessages                   Message[]                           @relation("ReceivedMessages")
+  SentMessages                       Message[]                           @relation("SentMessages")
+  NumeroCourrier                     NumeroCourrier[]
+  ObjectifCible                      ObjectifCible[]
+  ObjectifPeriod                     ObjectifPeriod[]
+  ObjectifPole                       ObjectifPole[]
+  Objectifsfinancieres               Objectifsfinancieres[]
+  Objectifsprospects                 Objectifsprospects[]
+  Objectifsvehicules                 Objectifsvehicules[]
+  Paiement                           Paiement[]
+  ReservationVehicule                ReservationVehicule[]
+  Signature                          Signature?
+  Tableau_chute                      Tableau_chute[]
+  Tableau_chute_rendez_vous          Tableau_chute_rendez_vous[]
+  NotificationsSent                  Notification[]                      @relation("NotificationsSent")
+  NotificationsReceived              Notification[]                      @relation("NotificationsReceived")
+  Agenda                             Agenda[]
+  RapportActiviteAgenda              RapportActiviteAgenda[]
+  RapportMaintenanceSAV              RapportMaintenanceSAV[]
+  CheckListsSAV                      CheckListsSAV[]
+  objectifPrincipauxes               ObjectifPrincipaux[]
+  RubriqueObjectifGlobal             RubriqueObjectifGlobal[]
+  ObjectifGlobal                     ObjectifGlobal[]
+  publicationObjectifGlobalRubriques PublicationObjectifGlobalRubrique[]
+  JournalPublication                 JournalPublication[]
+  DossierContentieux                 DossierContentieux[]
+  ProjetPonctuel                     ProjetPonctuel[]
+  ProjetPonctuelResponsable          ProjetPonctuelResponsable[]
+  ProjetPonctuelActivite             ProjetPonctuelActivite[]
+  ProjetPonctuelDocument             ProjetPonctuelDocument[]
+  ProjetPonctuelActiviteMessage      ProjetPonctuelActiviteMessage[]
+  ResponsableProjetRoutine           ResponsableProjetRoutine[]
+  ResponsableTacheResponsable        ResponsableTacheResponsable[]
+  TacheActiviteProjetRoutineCreated  TacheActiviteProjetRoutine[]        @relation("TacheCreatedBy")
+  JournalProspect                    JournalProspect[]
+  CartographieCompte                 CartographieCompte[]
+  Portefeuille                       Portefeuille[]
+  FinanceProjetCreated               FinanceProjet[]                     @relation("FinanceProjetCreatedBy")
+  FinanceProjetResponsable           FinanceProjetResponsable[]
+  FinancePlanActionResponsable       FinancePlanAction[]                 @relation("FinancePlanActionResponsable")
+  FinancePlanActionActeur            FinancePlanActionActeur[]
+  FinancePlanActionTacheResponsable  FinancePlanActionTache[]            @relation("FinancePlanActionTacheResponsable")
+  FinanceProjetRapport               FinanceProjetRapport[]
+  FinanceBudgetCreated               FinanceBudget[]                     @relation("FinanceBudgetCreatedBy")
+  FinanceDepenseCreated              FinanceDepense[]                    @relation("FinanceDepenseCreatedBy")
+  FinanceDepenseValidated            FinanceDepense[]                    @relation("FinanceDepenseValidatedBy")
+}
+
+model Message {
+  id         String    @id @default(uuid())
+  senderId   String
+  receiverId String?
+  content    String
+  createdAt  DateTime  @default(now())
+  readAt     DateTime?
+  receiver   User?     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id                    String                  @id @default(uuid())
+  nom                   String
+  email                 String?
+  telephone             String
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  userId                String
+  commercial            String?
+  entreprise            String?
+  localisation          String?
+  secteur_activite      String?
+  status_client         StatusClient            @default(PROSPECT)
+  premiere_commande     Boolean                 @default(false)
+  User                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Commande              Commande[]
+  Facture               Facture[]
+  Paiement              Paiement[]
+  RapportRendezVous     RapportRendezVous[]
+  rendezVous            RendezVous[]
+  Tableau_chute         Tableau_chute[]
+  Voiture               Voiture[]
+  FinanceProjetProspect FinanceProjetProspect[]
+}
+
+model RendezVous {
+  id                  String                @id @default(uuid())
+  date                DateTime
+  resume_rendez_vous  String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  statut              RendezVousStatut      @default(EN_ATTENTE)
+  note                String?
+  clientId            String?
+  clientEntrepriseId  String?
+  CalendrierSortie    CalendrierSortie[]
+  RapportRendezVous   RapportRendezVous[]
+  Client_entreprise   Client_entreprise?    @relation(fields: [clientEntrepriseId], references: [id], onDelete: Cascade)
+  client              Client?               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  ReservationVehicule ReservationVehicule[]
+  Voiture             Voiture[]
+}
+
+model Conteneur {
+  id                    String                  @id @default(uuid())
+  conteneurNumber       String                  @unique
+  sealNumber            String?
+  totalPackages         String?
+  grossWeight           String?
+  netWeight             String?
+  stuffingMap           String?
+  dateEmbarquement      DateTime?
+  dateArriveProbable    DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  etapeConteneur        EtapeConteneur          @default(EN_ATTENTE)
+  isVerified            Boolean                 @default(false)
+  Commande              Commande[]
+  CourrieAvantage       CourrieAvantage[]
+  Subcase               Subcase[]
+  VerificationConteneur VerificationConteneur[]
+  Voiture               Voiture[]
+}
+
+model Montage {
+  id                                    String             @id @default(uuid())
+  createdAt                             DateTime           @default(now())
+  updatedAt                             DateTime           @updatedAt
+  no_chassis                            String?
+  commandeId                            String
+  etapeMontage                          EtapeMontage       @default(CREATION)
+  ordreMontageId                        String?
+  Attribution                           Attribution[]
+  Commande_Commande_montageIdToMontage  Commande?          @relation("Commande_montageIdToMontage")
+  Equipe                                Equipe[]
+  Commande_Montage_commandeIdToCommande Commande           @relation("Montage_commandeIdToCommande", fields: [commandeId], references: [id])
+  OrdreMontage                          OrdreMontage?      @relation(fields: [ordreMontageId], references: [id])
+  MontageSparePart                      MontageSparePart[]
+  RapportMontage                        RapportMontage[]
+}
+
+model Equipe {
+  id                          String                        @id @default(uuid())
+  nomEquipe                   String
+  chefEquipeId                String
+  activite                    String
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime                      @updatedAt
+  montageId                   String?
+  mission                     String
+  taches_accomplies           String
+  stautsEquipe                StatusEquipe                  @default(ACTIVE)
+  Attribution                 Attribution[]
+  Employee                    Employee                      @relation(fields: [chefEquipeId], references: [id])
+  Montage                     Montage?                      @relation(fields: [montageId], references: [id])
+  EquipeMembre                EquipeMembre[]
+  MontageSparePartAttribution MontageSparePartAttribution[]
+  RapportEquipe               RapportEquipe[]
+  MontageSparePart            MontageSparePart[]
+}
+
+model Accessoire {
+  id          String    @id @default(uuid())
+  nom         String
+  voitureId   String?
+  factureId   String?
+  commandeId  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  image       String?
+  description String?
+  prix        Decimal?
+  quantity    Int?      @default(1)
+  Commande    Commande? @relation(fields: [commandeId], references: [id])
+  Facture     Facture?  @relation(fields: [factureId], references: [id])
+  Voiture     Voiture?  @relation(fields: [voitureId], references: [id])
+}
+
+model Attribution {
+  id             String       @id
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime
+  sparePartId    String
+  quantity       Int
+  equipeId       String
+  montageId      String
+  ordreMontageId String
+  Equipe         Equipe       @relation(fields: [equipeId], references: [id])
+  Montage        Montage      @relation(fields: [montageId], references: [id])
+  OrdreMontage   OrdreMontage @relation(fields: [ordreMontageId], references: [id])
+  SparePart      SparePart    @relation(fields: [sparePartId], references: [id])
+}
+
+model BonDeCommande {
+  id                     String              @id
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime
+  numero                 String
+  factureId              String              @unique
+  prefix_numero          String
+  Facture                Facture             @relation(fields: [factureId], references: [id])
+  status_bon_de_commande StatusBonDeCommande @default(EN_ATTENTE)
+}
+
+//set status_bon_de_commande=VALIDE_APPORT_INITIAL when facture.prix_unitaire*facture.nbr_voiture_commande*0.60 is greater than facture.total_ttc
+
+enum StatusBonDeCommande {
+  EN_ATTENTE
+  SOUS_RESERVE
+  VALIDE
+  VALIDE_APPORT_INITIAL
+  ANNULE
+}
+
+model BonPourAccord {
+  id                     String              @id @default(uuid())
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  numero_bon_pour_accord String
+  factureId              String              @unique
+  Facture                Facture             @relation(fields: [factureId], references: [id])
+  status_bon_pour_accord StatusBonPourAccord @default(EN_ATTENTE)
+}
+
+enum StatusBonPourAccord {
+  EN_ATTENTE
+  SOUS_RESERVE
+  VALIDE
+  VALIDE_APPORT_INITIAL
+  ANNULE
+}
+
+model LettreCommande {
+  id                       String   @id @default(uuid())
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  numero_lettre_commande   String
+  validite_lettre_commande Boolean  @default(false)
+
+  factureId                 String                      @unique
+  Facture                   Facture                     @relation(fields: [factureId], references: [id])
+  Evolution_Lettre_Commande Evolution_Lettre_Commande[]
+}
+
+model Evolution_Lettre_Commande {
+  id                String         @id @default(uuid())
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  etape_actuelle    String
+  etape_suivante    String
+  lettre_commandeId String
+  LettreCommande    LettreCommande @relation(fields: [lettre_commandeId], references: [id], onDelete: Cascade)
+
+  @@index([lettre_commandeId])
+}
+
+model AppelOffre {
+  id                      String                    @id @default(uuid())
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  numero_appel_offre      String
+  validite_appel_offre    Boolean                   @default(false)
+  factureId               String                    @unique
+  Facture                 Facture                   @relation(fields: [factureId], references: [id])
+  Information_Appel_Offre Information_Appel_Offre[]
+  Evolution_Appel_Offre   Evolution_Appel_Offre[]
+}
+
+model Information_Appel_Offre {
+  id                   String     @id @default(uuid())
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  nomStrctureEmettrice String
+  domaineActivite      String
+  telephone            String
+  email                String
+  numeroAppelOffre     String
+  appel_offreId        String
+  AppelOffre           AppelOffre @relation(fields: [appel_offreId], references: [id], onDelete: Cascade)
+  listeDocuments       Document[]
+}
+
+model Document {
+  id                        String                  @id @default(uuid())
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  nomDocument               String
+  urlDocument               String
+  information_appel_offreId String
+  Information_Appel_Offre   Information_Appel_Offre @relation(fields: [information_appel_offreId], references: [id], onDelete: Cascade)
+}
+
+model Evolution_Appel_Offre {
+  id             String     @id @default(uuid())
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  etape_actuelle String
+  etape_suivante String
+  appel_offreId  String
+  AppelOffre     AppelOffre @relation(fields: [appel_offreId], references: [id], onDelete: Cascade)
+
+  @@index([appel_offreId])
+}
+
+model Client_entreprise {
+  id                           String                  @id
+  nom_entreprise               String
+  sigle                        String?
+  email                        String?
+  telephone                    String
+  nom_personne_contact         String?
+  fonction_personne_contact    String?
+  email_personne_contact       String?
+  telephone_personne_contact   String?
+  localisation                 String?
+  secteur_activite             String?
+  flotte_vehicules             Boolean?
+  flotte_vehicules_description String?
+  status_client                StatusClient            @default(PROSPECT)
+  createdAt                    DateTime                @default(now())
+  updatedAt                    DateTime
+  commercial                   String?
+  userId                       String
+  premiere_commande            Boolean                 @default(false)
+  User                         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Commande                     Commande[]
+  Facture                      Facture[]
+  Paiement                     Paiement[]
+  RapportRendezVous            RapportRendezVous[]
+  RendezVous                   RendezVous[]
+  Tableau_chute                Tableau_chute[]
+  Voiture                      Voiture[]
+  FinanceProjetProspect        FinanceProjetProspect[]
+}
+
+model Commande {
+  id                                   String             @id
+  etapeCommande                        EtapeCommande
+  date_livraison                       DateTime
+  createdAt                            DateTime           @default(now())
+  updatedAt                            DateTime
+  clientId                             String?
+  conteneurId                          String?
+  commandeLocalId                      String?
+  couleur                              String
+  montageId                            String?            @unique
+  motorisation                         Motorisation
+  nbr_portes                           String
+  transmission                         Transmission
+  voitureModelId                       String?
+  clientEntrepriseId                   String?
+  factureId                            String?
+  prix_unitaire                        Decimal?
+  commandeFlag                         CommandeFlag       @default(VENDUE)
+  commandeGroupeeId                    String?
+  numChassis                           String?
+  Accessoire                           Accessoire[]
+  Client_entreprise                    Client_entreprise? @relation(fields: [clientEntrepriseId], references: [id], onDelete: Cascade)
+  Client                               Client?            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  CommandeGroupee                      CommandeGroupee?   @relation(fields: [commandeGroupeeId], references: [id])
+  CommandeLocal                        CommandeLocal?     @relation(fields: [commandeLocalId], references: [id])
+  Conteneur                            Conteneur?         @relation(fields: [conteneurId], references: [id])
+  Facture                              Facture?           @relation(fields: [factureId], references: [id])
+  Montage_Commande_montageIdToMontage  Montage?           @relation("Commande_montageIdToMontage", fields: [montageId], references: [id])
+  VoitureModel                         VoitureModel?      @relation(fields: [voitureModelId], references: [id])
+  CommandeEnAttente                    CommandeEnAttente?
+  Correction                           Correction[]
+  CourrieAvantage                      CourrieAvantage[]
+  Montage_Montage_commandeIdToCommande Montage[]          @relation("Montage_commandeIdToCommande")
+  OrdreMontage                         OrdreMontage[]
+  SparePart                            SparePart[]
+  Teste                                Teste[]
+  Tool                                 Tool[]
+  Voiture                              Voiture[]
+  Fournisseur                          Fournisseur[]
+  typeCommandeId                       String?
+  TypeCommande                         TypeCommande?      @relation(fields: [typeCommandeId], references: [id])
+}
+
+model TypeCommande {
+  id        String          @id
+  createdAt DateTime        @default(now())
+  updatedAt DateTime
+  nom       TypeCommandeNom @default(PERSON_INDIVIDUEL)
+  Commande  Commande[]
+}
+
+model CommandeEnAttente {
+  id                   String        @id
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime
+  commandeId           String        @unique
+  voitureModelId       String?
+  qteCommandeEnAttente Int
+  Commande             Commande      @relation(fields: [commandeId], references: [id])
+  VoitureModel         VoitureModel? @relation(fields: [voitureModelId], references: [id])
+}
+
+model CommandeGroupee {
+  id                   String               @id
+  date_validation      DateTime
+  stock_global         String
+  vendue               String
+  details              String
+  stock_disponible     String
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime
+  etapeCommandeGroupee EtapeCommandeGroupee @default(VALIDE)
+  Commande             Commande[]
+}
+
+model CommandeLocal {
+  id                       String                     @id
+  article                  String
+  description              String
+  quantity                 Int
+  price                    Decimal
+  total                    Decimal
+  date_livraison           DateTime
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime
+  Commande                 Commande[]
+  PieceComplement          PieceComplement[]
+  SparePart                SparePart[]
+  Tool                     Tool[]
+  Voiture                  Voiture[]
+  FournisseurCommandeLocal FournisseurCommandeLocal[]
+}
+
+model Correction {
+  id                String              @id
+  details           String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  voitureId         String
+  commandeId        String?
+  Commande          Commande?           @relation(fields: [commandeId], references: [id])
+  Voiture           Voiture             @relation(fields: [voitureId], references: [id])
+  RapportCorrection RapportCorrection[]
+  SparePart         SparePart[]
+  Tool              Tool[]
+}
+
+model CourrieAvantage {
+  id               String    @id
+  date_livraison   DateTime
+  reference        String
+  numero_conteneur String
+  vin              String
+  moteur           String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime
+  conteneurId      String
+  commandeId       String?
+  Commande         Commande? @relation(fields: [commandeId], references: [id])
+  Conteneur        Conteneur @relation(fields: [conteneurId], references: [id])
+}
+
+model Employee {
+  id                         String                     @id
+  nom                        String
+  prenoms                    String
+  numro_matricule            String?
+  contact                    String
+  bloodType                  String?
+  specialite                 String
+  poste                      String?
+  email                      String?
+  adresse                    String?
+  image                      String?
+  personne_urgence           String?
+  telephone_personne_urgence String?
+  relation_personne_urgence  String?
+  date_Embauche              DateTime?
+  date_Depart                DateTime?
+  status                     StatusEmployee             @default(ACTIVE)
+  userId                     String
+  User                       User                       @relation(fields: [userId], references: [id])
+  Equipe                     Equipe[]
+  EquipeMembre               EquipeMembre[]
+  LocalBuy                   LocalBuy[]
+  Teste                      Teste[]
+  Pointage                   Pointage[]
+  Nomination_vote_Employee   Nomination_vote_Employee[]
+  Permission                 Permission[]
+  CongeAnnuel                CongeAnnuel[]
+}
+
+enum StatusEmployee {
+  ACTIVE
+  INACTIVE
+  EN_COURS_DE_DEMISSION
+  DEMISSIONNE
+  EN_COURS_DE_REINTEGRATION
+  REINTEGRE
+  EN_COURS_DE_FORMATION
+  FORMEE
+  CONGE_ANNUEL
+  CONGE_MATERNITE
+  CONGE_PATERNITE
+}
+
+model Pointage {
+  id           String   @id
+  date         DateTime
+  heure_entree DateTime
+  heure_sortie DateTime
+  employeeId   String
+  Employee     Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Nomination_vote_Employee {
+  id          String   @id
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  employeeId  String
+  datedebut   DateTime
+  datefin     DateTime
+  titre       String
+  description String
+  Employee    Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Permission {
+  id          String           @id
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  employeeId  String
+  datedebut   DateTime
+  datefin     DateTime
+  titre       StatusPermission
+  description String
+  Employee    Employee         @relation(fields: [employeeId], references: [id])
+}
+
+enum StatusPermission {
+  EN_ATTENTE
+  VALIDE
+  EN_COURS
+  TERMINEE
+  ANNULE
+}
+
+model CongeAnnuel {
+  id         String            @id
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  employeeId String
+  datedebut  DateTime
+  datefin    DateTime
+  status     StatusCongeAnnuel @default(EN_ATTENTE)
+  Employee   Employee          @relation(fields: [employeeId], references: [id])
+}
+
+enum StatusCongeAnnuel {
+  EN_ATTENTE
+  VALIDE
+  EN_COURS
+  TERMINEE
+  ANNULE
+}
+
+model EquipeMembre {
+  id         String   @id
+  qualite    Qualite
+  fonction   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  equipeId   String
+  employeeId String
+  Employee   Employee @relation(fields: [employeeId], references: [id])
+  Equipe     Equipe   @relation(fields: [equipeId], references: [id])
+}
+
+model Facture {
+  id                     String             @id
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime
+  clientId               String?
+  clientEntrepriseId     String?
+  userId                 String
+  date_facture           DateTime
+  date_echeance          DateTime
+  status_facture         StatusFacture      @default(EN_ATTENTE)
+  voitureId              String?
+  nbr_voiture_commande   Int
+  prix_unitaire          Decimal
+  montant_ht             Decimal
+  total_ht               Decimal
+  remise                 Decimal
+  montant_remise         Decimal
+  montant_net_ht         Decimal
+  tva                    Decimal
+  montant_tva            Decimal
+  total_ttc              Decimal
+  avance_payee           Decimal
+  reste_payer            Decimal
+  accessoire_description String?
+  accessoire_nbr         Int?
+  accessoire_nom         String?
+  accessoire_prix        Decimal?
+  accessoire_subtotal    Decimal?
+  bon_pour_acquis        Boolean            @default(false)
+  notes_proforma         String?
+  Accessoire             Accessoire[]
+  BonDeCommande          BonDeCommande?
+  BonPourAccord          BonPourAccord?
+  LettreCommande         LettreCommande?
+  AppelOffre             AppelOffre?
+  Commande               Commande[]
+  Client_entreprise      Client_entreprise? @relation(fields: [clientEntrepriseId], references: [id], onDelete: Cascade)
+  Client                 Client?            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  User                   User               @relation(fields: [userId], references: [id])
+  Voiture                Voiture?           @relation(fields: [voitureId], references: [id])
+  FactureLigne           FactureLigne[]
+  Paiement               Paiement[]
+}
+
+model FactureLigne {
+  id             String       @id
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime
+  factureId      String
+  voitureModelId String
+  couleur        String
+  nbr_voiture    Int
+  prix_unitaire  Decimal
+  montant_ligne  Decimal
+  motorisation   String?
+  transmission   String?
+  Facture        Facture      @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  VoitureModel   VoitureModel @relation(fields: [voitureModelId], references: [id])
+}
+
+model Fournisseur {
+  id            String     @id
+  nom           String
+  email         String?
+  telephone     String?
+  adresse       String?
+  ville         String?
+  code_postal   String?
+  pays          String?
+  type_Activite String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime
+  Commande      Commande[]
+}
+
+model Partenaire {
+  id              String         @id
+  nom             String
+  email           String?
+  telephone       String?
+  adresse         String?
+  ville           String?
+  code_postal     String?
+  pays            String?
+  type_partenaire TypePartenaire
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime
+}
+
+enum TypePartenaire {
+  FOURNISSEUR
+  CLIENT
+  PARTENAIRE
+}
+
+model FournisseurCommandeLocal {
+  id              String          @id
+  nom             String
+  email           String?
+  telephone       String?
+  adresse         String?
+  ville           String?
+  code_postal     String?
+  pays            String?
+  type_Activite   String?
+  commandeLocalId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  CommandeLocal   CommandeLocal[]
+}
+
+model LocalBuy {
+  id             String   @id
+  partName       String
+  partNameFrench String?
+  partCode       String
+  quantity       Int
+  price          Float?
+  description    String?
+  montant        Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+  employeeId     String
+  Employee       Employee @relation(fields: [employeeId], references: [id])
+}
+
+model MontageSparePart {
+  id                          String                        @id
+  qte_commandee               String?
+  qte_attribue                String?
+  qte_restante                String?
+  equipe_montage              String?
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime
+  montageId                   String
+  Montage                     Montage                       @relation(fields: [montageId], references: [id])
+  MontageSparePartAttribution MontageSparePartAttribution[]
+  Equipe                      Equipe[]
+  SparePart                   SparePart[]
+  Tool                        Tool[]
+}
+
+model MontageSparePartAttribution {
+  id                 String           @id
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime
+  equipeId           String
+  montageSparePartId String
+  Equipe             Equipe           @relation(fields: [equipeId], references: [id])
+  MontageSparePart   MontageSparePart @relation(fields: [montageSparePartId], references: [id])
+  SparePart          SparePart[]
+}
+
+model NumeroChassis {
+  id              String         @id
+  chassisNumber   String         @unique
+  motorisation    Motorisation
+  numeroConteneur String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime
+  chassisFlag     ChassisFlag    @default(DISPONIBLE)
+  OrdreMontage    OrdreMontage[]
+}
+
+model NumeroEntreeCaisse {
+  id            String   @id
+  numero        String   @unique
+  prefix_numero String
+  paiementId    String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+  Paiement      Paiement @relation(fields: [paiementId], references: [id])
+}
+
+model OrdreMontage {
+  id               String           @id
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime
+  commandeId       String
+  voitureId        String
+  numeroChassisId  String
+  ordreMontageFlag OrdreMontageFlag @default(CREER)
+  Attribution      Attribution[]
+  Montage          Montage[]
+  Commande         Commande         @relation(fields: [commandeId], references: [id])
+  NumeroChassis    NumeroChassis    @relation(fields: [numeroChassisId], references: [id])
+  Voiture          Voiture          @relation(fields: [voitureId], references: [id])
+}
+
+model Paiement {
+  id                 String              @id
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime
+  factureId          String
+  clientId           String?
+  clientEntrepriseId String?
+  userId             String
+  avance_payee       Decimal
+  reste_payer        Decimal
+  date_paiement      DateTime
+  mode_paiement      ModePaiement
+  status_paiement    StatusPaiement      @default(EN_ATTENTE)
+  NumeroEntreeCaisse NumeroEntreeCaisse?
+  Client_entreprise  Client_entreprise?  @relation(fields: [clientEntrepriseId], references: [id], onDelete: Cascade)
+  Client             Client?             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  Facture            Facture             @relation(fields: [factureId], references: [id])
+  User               User                @relation(fields: [userId], references: [id])
+}
+
+model PieceComplement {
+  id                      String                 @id
+  partCode                String
+  partName                String
+  partNameFrench          String?
+  vehicleModel            String
+  quantity                Int
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime
+  commandeLocalId         String
+  verificationConteneurId String?
+  CommandeLocal           CommandeLocal          @relation(fields: [commandeLocalId], references: [id])
+  VerificationConteneur   VerificationConteneur? @relation(fields: [verificationConteneurId], references: [id])
+}
+
+model RapportCorrection {
+  id           String     @id
+  details      String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime
+  correctionId String
+  Correction   Correction @relation(fields: [correctionId], references: [id])
+}
+
+model RapportEquipe {
+  id        String   @id
+  details   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  equipeId  String
+  Equipe    Equipe   @relation(fields: [equipeId], references: [id])
+}
+
+model RapportMontage {
+  id        String   @id
+  details   String
+  montageId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Montage   Montage  @relation(fields: [montageId], references: [id])
+}
+
+model RapportRendezVous {
+  id                        String                      @id
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime
+  date_rendez_vous          DateTime
+  heure_rendez_vous         String
+  lieu_rendez_vous          String
+  lieu_autre                String?
+  conseiller_commercial     String
+  duree_rendez_vous         String
+  nom_prenom_client         String
+  telephone_client          String
+  email_client              String?
+  profession_societe        String?
+  tailleParcEquipements     String?
+  type_client               String
+  Com_Pres                  Boolean                     @default(false)
+  Com_Drive                 Boolean                     @default(false)
+  Com_Achat                 Boolean                     @default(false)
+  Com_Livre                 Boolean                     @default(false)
+  Com_APV                   Boolean                     @default(false)
+  Com_Office                Boolean                     @default(false)
+  Com_Close                 Boolean                     @default(false)
+  objet_autre               String?
+  typeContact               String?
+  modeles_discutes          String?
+  motivations_achat         String?
+  besoinIdentifie           String?
+  points_positifs           String?
+  objections_freins         String?
+  degre_interet             String?
+  decision_attendue         String?
+  devis_offre_remise        Boolean                     @default(false)
+  propositions_faites       String?
+  reference_offre           String?
+  etapeDesEchanges          String?
+  financement_propose       String?
+  assurance_entretien       Boolean                     @default(false)
+  reprise_ancien_vehicule   Boolean                     @default(false)
+  suivi_actions             String?
+  actions_suivi             String?
+  commentaire_global        String?
+  voitureId                 String?
+  rendezVousId              String
+  clientId                  String?
+  clientEntrepriseId        String?
+  Client_entreprise         Client_entreprise?          @relation(fields: [clientEntrepriseId], references: [id], onDelete: Cascade)
+  Client                    Client?                     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  RendezVous                RendezVous                  @relation(fields: [rendezVousId], references: [id])
+  Voiture                   Voiture?                    @relation(fields: [voitureId], references: [id])
+  Tableau_chute             Tableau_chute[]
+  Tableau_chute_rendez_vous Tableau_chute_rendez_vous[]
+}
+
+
+
+model RapportTeste {
+  id        String   @id
+  details   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  testeId   String
+  Teste     Teste    @relation(fields: [testeId], references: [id])
+}
+
+model RapportVerification {
+  id                      String                @id
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime
+  verificationConteneurId String
+  VerificationConteneur   VerificationConteneur @relation(fields: [verificationConteneurId], references: [id])
+}
+
+model JournalProspect {
+  id                    String                     @id @default(uuid())
+  heure                 DateTime
+  typeContact           TypeContactJournalProspect
+  nomEntreprise         String
+  secteurActivite       String?
+  interlocuteur         String?
+  fonction              String?
+  telephone             String?
+  email                 String?
+  tailleParcEquipements String?
+  besoinIdentifie       String?
+  statutEtape           StatutEtapeJournalProspect @default(PREMIER_CONTACT)
+  actionSuivante        String?
+  dateRelance           DateTime?
+  commentaires          String?
+  resume                String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  userId                String
+  User                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([dateRelance])
+  @@index([statutEtape])
+}
+
+enum TypeContactJournalProspect {
+  APPEL_PHONING_B2B
+  VISITE_TERRAIN
+  EMAIL
+  WHATSAPP
+  SALON
+  RESEAU
+  AUTRE
+}
+
+enum StatutEtapeJournalProspect {
+  PREMIER_CONTACT
+  QUALIFICATION
+  EN_COURS
+  RDV_PLANIFIE
+  OFFRE_ENVOYEE
+  NEGOCIATION
+  RELANCE
+  GAGNE
+  PERDU
+  SANS_SUITE
+}
+
+model CartographieCompte {
+  id                         String                               @id @default(uuid())
+  zone                       String?
+  secteur                    String?
+  raisonSociale              String
+  typeStructure              TypeStructureCartographieCompte
+  decideurCle                DecideurCleCartographieCompte
+  telephone                  String?
+  email                      String?
+  parcActuelEstimation       Int?
+  marquesModelesPredominants String?
+  contratMaintenance         ContratMaintenanceCartographieCompte
+  offreKpandjiPrioritaire    OffreKpandjiCartographieCompte
+  statutProspection          StatutProspectionCartographieCompte  @default(A_APPROCHER)
+  datePrevueApproche         DateTime?
+  createdAt                  DateTime                             @default(now())
+  updatedAt                  DateTime                             @updatedAt
+  userId                     String
+  User                       User                                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([statutProspection])
+  @@index([datePrevueApproche])
+  @@index([typeStructure])
+}
+
+model Portefeuille {
+  id                         String                         @id @default(uuid())
+  provenanceContact          ProvenanceContactPortefeuille
+  nomEntreprise              String
+  interlocuteurCle           String?
+  telephone                  String?
+  email                      String?
+  ageParcActuel              String?
+  marquesModelesActuels      String?
+  opportuniteVente           OpportuniteVentePortefeuille
+  opportuniteEntretienGarage Boolean                        @default(false)
+  statutPriseContact         StatutPriseContactPortefeuille @default(NON_CONTACTE)
+  dateDernierEchange         DateTime?
+  resultat                   String?
+  prochaineEtape             String?
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+  userId                     String
+  User                       User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([statutPriseContact])
+  @@index([dateDernierEchange])
+  @@index([provenanceContact])
+}
+
+enum TypeStructureCartographieCompte {
+  PME
+  SANTE
+  EDUCATION
+  HUMANITAIRE
+  ADMINISTRATION
+  BTP_INFRASTRUCTURES
+  LOGISTIQUE_TRANSPORT
+  AGRO_ALIMENTAIRE
+  AGRO_INDUSTRIE
+  ENERGIES_HYDROCARBURES
+  DISTRIBUTION
+  SECURITE_PRIVEE_GARDINAGE
+  ADMINISTRATION_PUBLIQUE
+  EPN_SOCIETE_ETAT
+  INDUSTRIE
+  AGRICULTURE_AGRO_PASTORAL
+  PECHE_AQUACULTURE
+  ELEVAGE
+  HOTELLERIE_TOURISME_RESTAURATION
+  INFORMATIQUE_TECHNOLOGIES
+  SPORT
+  PRESTATION_DE_SERVICES
+  ENVIRONNEMENT_ECOLOGIE
+  SCIENCES_RECHERCHES
+  MINES
+  COMMERCE_GENERAL
+  AUTRE
+}
+
+enum DecideurCleCartographieCompte {
+  MOYEN_GENERAL
+  CHARROI
+  DG
+}
+
+enum ContratMaintenanceCartographieCompte {
+  OUI
+  NON
+  GARAGE_EXTERNE
+}
+
+enum OffreKpandjiCartographieCompte {
+  VEHICULES
+  CAMIONS
+  GARAGE
+}
+
+enum StatutProspectionCartographieCompte {
+  A_APPROCHER
+  EN_COURS
+  QUALIFIE
+  RDV_PLANIFIE
+  OFFRE_ENVOYEE
+  GAGNE
+  PERDU
+  EN_SOMMEIL
+}
+
+enum ProvenanceContactPortefeuille {
+  ANCIEN_EMPLOYEUR
+  RESEAU_PERSO
+}
+
+enum OpportuniteVentePortefeuille {
+  ENGINS
+  CAMIONS
+  PICK_UP
+}
+
+enum StatutPriseContactPortefeuille {
+  NON_CONTACTE
+  CONTACT_EN_COURS
+  CONTACTE
+  EN_ATTENTE_RETOUR
+  RDV_PLANIFIE
+  RELANCE
+  SANS_SUITE
+}
+
+model Signature {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  image     String
+  userId    String   @unique
+  User      User     @relation(fields: [userId], references: [id])
+}
+
+model SistreInvoice {
+  id                String              @id
+  invoiceNumber     String              @unique
+  invoiceDate       DateTime
+  total             Decimal
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  SistreInvoiceItem SistreInvoiceItem[]
+}
+
+model SistreInvoiceItem {
+  id            String        @id
+  invoiceId     String
+  description   String
+  quantity      Int
+  unitPrice     Decimal
+  amount        Decimal
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  SistreInvoice SistreInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model SparePart {
+  id                          String                        @id
+  partCode                    String
+  partName                    String
+  partNameFrench              String?
+  quantity                    Int
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime
+  commandeLocalId             String?
+  voitureId                   String?
+  subcaseId                   String?
+  verificationConteneurId     String?
+  commandeId                  String?
+  storageId                   String?
+  etapeSparePart              EtapeSparePart                @default(TRANSITE)
+  statusVerification          StatusVerification            @default(EN_ATTENTE)
+  verificationName            String?
+  Attribution                 Attribution[]
+  Commande                    Commande?                     @relation(fields: [commandeId], references: [id])
+  CommandeLocal               CommandeLocal?                @relation(fields: [commandeLocalId], references: [id])
+  Storage                     Storage?                      @relation(fields: [storageId], references: [id])
+  Subcase                     Subcase?                      @relation(fields: [subcaseId], references: [id])
+  VerificationConteneur       VerificationConteneur?        @relation(fields: [verificationConteneurId], references: [id])
+  Voiture                     Voiture?                      @relation(fields: [voitureId], references: [id])
+  Correction                  Correction[]
+  MontageSparePartAttribution MontageSparePartAttribution[]
+  MontageSparePart            MontageSparePart[]
+}
+
+model StockDisponible {
+  id              String       @id
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  voitureModelId  String
+  couleur         String
+  motorisation    String
+  transmission    String
+  quantity        Int          @default(1)
+  acquisitionDate DateTime     @default(now())
+  VoitureModel    VoitureModel @relation(fields: [voitureModelId], references: [id])
+}
+
+model Storage {
+  id            String      @id
+  storageNumber String?
+  porte_Number  String?
+  rayon         String?
+  etage         String?
+  caseNumber    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  SparePart     SparePart[]
+}
+
+model Subcase {
+  id            String      @id
+  subcaseNumber String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  conteneurId   String
+  isVerified    Boolean     @default(false)
+  SparePart     SparePart[]
+  Conteneur     Conteneur   @relation(fields: [conteneurId], references: [id])
+  Tool          Tool[]
+}
+
+model Tableau_chute {
+  id                  String             @id
+  mois_chute          String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime
+  clientId            String?
+  clientEntrepriseId  String?
+  userId              String?
+  rapportRendezVousId String
+  voitureId           String?
+  Client_entreprise   Client_entreprise? @relation(fields: [clientEntrepriseId], references: [id], onDelete: Cascade)
+  Client              Client?            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  RapportRendezVous   RapportRendezVous  @relation(fields: [rapportRendezVousId], references: [id])
+  User                User?              @relation(fields: [userId], references: [id])
+  Voiture             Voiture?           @relation(fields: [voitureId], references: [id])
+}
+
+model Tableau_chute_rendez_vous {
+  id                  String            @id
+  mois_chute          String
+  modeles_discutes    Json?
+  rapportRendezVousId String
+  userId              String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime
+  RapportRendezVous   RapportRendezVous @relation(fields: [rapportRendezVousId], references: [id])
+  User                User              @relation(fields: [userId], references: [id])
+}
+
+model Teste {
+  id           String         @id
+  activite     String
+  dateTeste    DateTime
+  heureTeste   DateTime
+  resultat     String
+  commentaire  String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  voitureId    String
+  employeeId   String
+  commandeId   String?
+  RapportTeste RapportTeste[]
+  Commande     Commande?      @relation(fields: [commandeId], references: [id])
+  Employee     Employee       @relation(fields: [employeeId], references: [id])
+  Voiture      Voiture        @relation(fields: [voitureId], references: [id])
+}
+
+model Tool {
+  id                      String                 @id
+  toolCode                String
+  toolName                String
+  quantity                Int
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime
+  check                   Boolean                @default(false)
+  commandeId              String?
+  commandeLocalId         String?
+  subcaseId               String?
+  verificationConteneurId String?
+  etapeTool               EtapeTool              @default(TRANSITE)
+  Commande                Commande?              @relation(fields: [commandeId], references: [id])
+  CommandeLocal           CommandeLocal?         @relation(fields: [commandeLocalId], references: [id])
+  Subcase                 Subcase?               @relation(fields: [subcaseId], references: [id])
+  VerificationConteneur   VerificationConteneur? @relation(fields: [verificationConteneurId], references: [id])
+  Correction              Correction[]
+  MontageSparePart        MontageSparePart[]
+}
+
+model VerificationConteneur {
+  id                  String                @id
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  conteneurId         String
+  PieceComplement     PieceComplement[]
+  RapportVerification RapportVerification[]
+  SparePart           SparePart[]
+  Tool                Tool[]
+  Conteneur           Conteneur             @relation(fields: [conteneurId], references: [id])
+}
+
+model Voiture {
+  id                  String                @id
+  nbr_portes          String
+  transmission        Transmission
+  motorisation        Motorisation
+  couleur             String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  clientId            String?
+  commandeId          String?
+  commandeLocalId     String?
+  conteneurId         String?
+  voitureModelId      String?
+  etatVoiture         EtatVoiture
+  clientEntrepriseId  String?
+  description         String?
+  rendezVousId        String?
+  Accessoire          Accessoire[]
+  CalendrierSortie    CalendrierSortie[]
+  Correction          Correction[]
+  Facture             Facture[]
+  OrdreMontage        OrdreMontage[]
+  RapportRendezVous   RapportRendezVous[]
+  ReservationVehicule ReservationVehicule[]
+  SparePart           SparePart[]
+  Tableau_chute       Tableau_chute[]
+  Teste               Teste[]
+  Client_entreprise   Client_entreprise?    @relation(fields: [clientEntrepriseId], references: [id])
+  Client              Client?               @relation(fields: [clientId], references: [id])
+  Commande            Commande?             @relation(fields: [commandeId], references: [id])
+  CommandeLocal       CommandeLocal?        @relation(fields: [commandeLocalId], references: [id])
+  Conteneur           Conteneur?            @relation(fields: [conteneurId], references: [id])
+  RendezVous          RendezVous?           @relation(fields: [rendezVousId], references: [id])
+  VoitureModel        VoitureModel?         @relation(fields: [voitureModelId], references: [id])
+  VoitureSAV          VoitureSAV[]
+}
+
+model VoitureModel {
+  id                       String                     @id
+  model                    String
+  fiche_technique          String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime
+  description              String?
+  image                    String?
+  couleur                  String?
+  Commande                 Commande[]
+  CommandeEnAttente        CommandeEnAttente[]
+  FactureLigne             FactureLigne[]
+  StockDisponible          StockDisponible[]
+  Voiture                  Voiture[]
+  FinanceProjetModeleCible FinanceProjetModeleCible[]
+}
+
+///departement communication
+model CommunicationProject {
+  id                    String                      @id @default(uuid())
+  name                  String
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  createdById           String?
+  diagnosticContext     String?
+  diagnosticTarget      String?
+  diagnosticEnvironment String?
+  diagnosticForces      String?
+  objectives            String?
+  strategyPositioning   String?
+  strategyTargets       String?
+  strategyChannels      String?
+  actionPlan            String?
+  actionSupports        String?
+  actionCalendar        String?
+  actionBudget          String?
+  implementationContent String?
+  implementationLaunch  String?
+  implementationTeams   String?
+  evaluationMetrics     String?
+  evaluationComparison  String?
+  evaluationAdjustments String?
+  projectStatus         ProjectStatus               @default(ACTIVE)
+  budgetItems           CommunicationBudgetItem[]
+  planActions           CommunicationPlanAction[]
+  createdBy             User?                       @relation(fields: [createdById], references: [id])
+  actors                CommunicationProjectActor[]
+}
+
+model CommunicationPlanAction {
+  id             String                         @id @default(uuid())
+  projectId      String
+  title          String
+  startDate      DateTime
+  endDate        DateTime
+  orderIndex     Int                            @default(0)
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+  completed      Boolean                        @default(false)
+  project        CommunicationProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedActors CommunicationPlanActionActor[]
+  tasks          CommunicationPlanActionTask[]
+
+  @@index([projectId])
+}
+
+model CommunicationPlanActionTask {
+  id         String                  @id @default(uuid())
+  title      String
+  startDate  DateTime
+  endDate    DateTime
+  stage      PlanActionTaskStage     @default(EN_ATTENTE_DEBUT)
+  orderIndex Int                     @default(0)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  actionId   String
+  action     CommunicationPlanAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@index([actionId])
+}
+
+model CommunicationProjectActor {
+  id              String                         @id @default(uuid())
+  projectId       String
+  name            String
+  department      String
+  job             String
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  project         CommunicationProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedActions CommunicationPlanActionActor[]
+
+  @@index([projectId])
+}
+
+model CommunicationPlanActionActor {
+  id        String                    @id @default(uuid())
+  actionId  String
+  actorId   String
+  createdAt DateTime                  @default(now())
+  action    CommunicationPlanAction   @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actor     CommunicationProjectActor @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@unique([actionId, actorId])
+  @@index([actionId])
+  @@index([actorId])
+}
+
+model CommunicationBudgetItem {
+  id           String               @id @default(uuid())
+  projectId    String
+  designation  String
+  prixUnitaire Float
+  quantite     Float
+  montant      Float
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  project      CommunicationProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ObjectifPrincipaux {
+  id                            String                       @id @default(uuid())
+  titre                         String
+  description                   String?
+  status                        ObjectifPrincipauxStatus     @default(ACTIVE)
+  createdAt                     DateTime                     @default(now())
+  updatedAt                     DateTime                     @updatedAt
+  userId                        String
+  User                          User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cycleObjectifGlobalRubrique   CycleObjectifGlobalRubrique? @relation(fields: [cycleObjectifGlobalRubriqueId], references: [id])
+  cycleObjectifGlobalRubriqueId String?
+
+  @@index([userId])
+}
+
+enum ObjectifPrincipauxStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model RubriqueObjectifGlobal {
+  id                                String                              @id @default(uuid())
+  rubrique                          String
+  createdAt                         DateTime                            @default(now())
+  updatedAt                         DateTime                            @updatedAt
+  CycleObjectifGlobalRubrique       CycleObjectifGlobalRubrique[]
+  PublicationObjectifGlobalRubrique PublicationObjectifGlobalRubrique[]
+  status                            RubriqueObjectifGlobalStatus        @default(ACTIVE)
+  userId                            String?
+  User                              User?                               @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+enum RubriqueObjectifGlobalStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model CycleObjectifGlobalRubrique {
+  id                                String                              @id @default(uuid())
+  createdAt                         DateTime                            @default(now())
+  updatedAt                         DateTime                            @updatedAt
+  titreCycle                        String
+  dateDebutCycle                    DateTime
+  dateFinCycle                      DateTime
+  status                            CycleObjectifGlobalRubriqueStatus   @default(ACTIVE)
+  rubriqueId                        String
+  RubriqueObjectifGlobal            RubriqueObjectifGlobal              @relation(fields: [rubriqueId], references: [id], onDelete: Cascade)
+  ObjectifGlobal                    ObjectifGlobal[]
+  ObjectifPrincipaux                ObjectifPrincipaux[]
+  PublicationObjectifGlobalRubrique PublicationObjectifGlobalRubrique[]
+}
+
+enum CycleObjectifGlobalRubriqueStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model PublicationObjectifGlobalRubrique {
+  id                   String                                  @id @default(uuid())
+  createdAt            DateTime                                @default(now())
+  updatedAt            DateTime                                @updatedAt
+  titrePublication     String
+  dateDebutPublication DateTime
+  dateFinPublication   DateTime
+  status               PublicationObjectifGlobalRubriqueStatus @default(ACTIVE)
+  objectifGlobalId     String
+  ObjectifGlobal       ObjectifGlobal                          @relation(fields: [objectifGlobalId], references: [id], onDelete: Cascade)
+  tasks                ObjectifGlobalTask[]
+
+  userId                        String
+  User                          User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rubriqueObjectifGlobal        RubriqueObjectifGlobal?      @relation(fields: [rubriqueObjectifGlobalId], references: [id])
+  rubriqueObjectifGlobalId      String?
+  cycleObjectifGlobalRubrique   CycleObjectifGlobalRubrique? @relation(fields: [cycleObjectifGlobalRubriqueId], references: [id])
+  cycleObjectifGlobalRubriqueId String?
+
+  JournalPublication JournalPublication[]
+
+  @@index([userId])
+}
+
+enum PublicationObjectifGlobalRubriqueStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model JournalPublication {
+  id                                String                            @id @default(uuid())
+  createdAt                         DateTime                          @default(now())
+  updatedAt                         DateTime                          @updatedAt
+  titreJournal                      String
+  descriptionJournal                String?
+  publicationId                     String
+  PublicationObjectifGlobalRubrique PublicationObjectifGlobalRubrique @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  userId                            String
+  User                              User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId])
+  @@index([userId])
+}
+
+model ObjectifGlobal {
+  id                                String                              @id @default(uuid())
+  createdAt                         DateTime                            @default(now())
+  updatedAt                         DateTime                            @updatedAt
+  objectif                          String
+  cycleObjectifGlobalRubriqueId     String?
+  CycleObjectifGlobalRubrique       CycleObjectifGlobalRubrique?        @relation(fields: [cycleObjectifGlobalRubriqueId], references: [id], onDelete: Cascade)
+  frequence                         String
+  plateforme                        String
+  style_Thon                        String
+  userId                            String
+  User                              User                                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks                             ObjectifGlobalTask[]
+  PublicationObjectifGlobalRubrique PublicationObjectifGlobalRubrique[]
+}
+
+model ObjectifGlobalTask {
+  id                                  String                             @id @default(uuid())
+  title                               String
+  startDate                           DateTime
+  endDate                             DateTime
+  stage                               PlanActionTaskStage                @default(EN_ATTENTE_DEBUT)
+  orderIndex                          Int                                @default(0)
+  createdAt                           DateTime                           @default(now())
+  updatedAt                           DateTime                           @updatedAt
+  objectifId                          String
+  ObjectifGlobal                      ObjectifGlobal                     @relation(fields: [objectifId], references: [id], onDelete: Cascade)
+  PublicationObjectifGlobalRubrique   PublicationObjectifGlobalRubrique? @relation(fields: [publicationObjectifGlobalRubriqueId], references: [id], onDelete: Cascade)
+  publicationObjectifGlobalRubriqueId String?
+
+  @@index([objectifId])
+}
+
+/// Objectifs commerciaux 
+model ObjectifPeriod {
+  id                    String                 @id @default(uuid())
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  objectif_start        DateTime
+  objectif_end          DateTime
+  objectif_duree        String
+  objectifs_financieres String
+  objectifs_vehicules   String
+  objectifs_clients     String
+  userId                String
+  ObjectifCible         ObjectifCible[]
+  User                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ObjectifPole          ObjectifPole[]
+  Objectifsfinancieres  Objectifsfinancieres[]
+  Objectifsprospects    Objectifsprospects[]
+  Objectifsvehicules    Objectifsvehicules[]
+}
+
+model ObjectifCible {
+  id            String         @id @default(uuid())
+  periodId      String
+  userId        String
+  prospectCible Int            @default(0)
+  prospectReel  Int            @default(0)
+  tauxAtteint   Decimal        @default(0) @db.Decimal(5, 2)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  period        ObjectifPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([periodId, userId])
+  @@index([userId])
+  @@index([periodId])
+}
+
+model Objectifsprospects {
+  id                           String         @id @default(uuid())
+  objectif_cible               String
+  objectif_reel_atteint        String
+  objectif_pourcentage_atteint Float
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime       @updatedAt
+  userId                       String
+  objectifPeriodId             String
+  ObjectifPeriod               ObjectifPeriod @relation(fields: [objectifPeriodId], references: [id], onDelete: Cascade)
+  User                         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([objectifPeriodId])
+}
+
+model CalendrierSortie {
+  id                    String                 @id @default(uuid())
+  dateSortie            DateTime
+  dateRetour            DateTime
+  destination           String
+  motif                 String
+  commentaire           String?
+  statut                StatutCalendrierSortie @default(EN_ATTENTE)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  userId                String
+  voitureId             String?
+  rendezVousId          String
+  autre_moyen_transport String?
+  moyenTransport        String?
+  RendezVous            RendezVous             @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  User                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Voiture               Voiture?               @relation(fields: [voitureId], references: [id], onDelete: Cascade)
+  ReservationVehicule   ReservationVehicule[]
+
+  @@index([userId])
+}
+
+model ReservationVehicule {
+  id                    String                    @id @default(uuid())
+  dateReservation       DateTime
+  dateRetour            DateTime
+  heure_reserve         String
+  destination           String
+  motif                 String
+  commentaire           String?
+  statut                StatutReservationVehicule @default(EN_ATTENTE)
+  rendezVousId          String
+  voitureId             String?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  userId                String
+  calendrierSortieId    String
+  moyenTransport        String?
+  clientOuEntrepriseNom String?
+  coutTransport         Decimal?                  @default(0)
+  accompagnant          String?
+  CalendrierSortie      CalendrierSortie          @relation(fields: [calendrierSortieId], references: [id], onDelete: Cascade)
+  RendezVous            RendezVous                @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  User                  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Voiture               Voiture?                  @relation(fields: [voitureId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([rendezVousId])
+  @@index([voitureId])
+  @@index([calendrierSortieId])
+}
+
+model Objectifsvehicules {
+  id                           String         @id @default(uuid())
+  objectif_cible               String
+  objectif_reel_atteint        String?
+  objectif_pourcentage_atteint Float?
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime       @updatedAt
+  userId                       String
+  objectifPeriodId             String
+  ObjectifPeriod               ObjectifPeriod @relation(fields: [objectifPeriodId], references: [id], onDelete: Cascade)
+  User                         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([objectifPeriodId])
+}
+
+model Objectifsfinancieres {
+  id                           String          @id @default(uuid())
+  objectif_cible               String?
+  objectif_reel_atteint        String?
+  objectif_pourcentage_atteint Float?
+  createdAt                    DateTime        @default(now())
+  updatedAt                    DateTime        @updatedAt
+  userId                       String?
+  objectifPeriodId             String?
+  nomDuCommercial              String          @default("")
+  pole                         String          @default("")
+  duree                        String          @default("")
+  chiffreAffaire               Decimal         @default(0) @db.Decimal(18, 2)
+  finObjectif                  DateTime?
+  pourcentageAtteint           Decimal         @default(0) @db.Decimal(10, 2)
+  ecartCible                   Decimal?
+  ObjectifPeriod               ObjectifPeriod? @relation(fields: [objectifPeriodId], references: [id], onDelete: Cascade)
+  User                         User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([objectifPeriodId])
+}
+
+model ObjectifPole {
+  id                String         @id @default(uuid())
+  objectifPoleCible String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  userId            String
+  objectifPeriodId  String
+  ObjectifPeriod    ObjectifPeriod @relation(fields: [objectifPeriodId], references: [id], onDelete: Cascade)
+  User              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([objectifPeriodId])
+}
+
+model NumeroCourrier {
+  id              String   @id @default(uuid())
+  destinataire    String
+  objet           String
+  numero_courrier String   @unique
+  date            DateTime
+  username        String
+  userId          String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  User            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([numero_courrier])
+}
+
+model GoodiesBrochures {
+  id                     String   @id @default(uuid())
+  nom                    String
+  description            String?
+  categorie              String?
+  quantite               Int      @default(0)
+  prix_achat             Decimal? @default(0) @db.Decimal(18, 2)
+  origine_artisan        String?
+  contact_artisan        String?
+  attribution_commercial String?
+  quantite_attribuee     Int      @default(0)
+  quantite_restante      Int      @default(0)
+  destination            String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model GoodiesBrochuresAttribution {
+  id                     String   @id @default(uuid())
+  goodiesBrochuresId     String
+  attribution_commercial String
+  quantite_attribuee     Int      @default(0)
+  destination            String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model ClientSAV {
+  id               String       @id @default(uuid())
+  nom              String
+  prenom           String
+  email            String?
+  contact          String
+  entreprise       String?
+  localisation     String?
+  secteur_activite String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  VoitureSAV       VoitureSAV[]
+}
+
+model VoitureSAV {
+  id                           String                         @id @default(uuid())
+  model                        String
+  motorisation                 Motorisation
+  transmission                 Transmission
+  couleur                      String
+  nbr_portes                   String
+  immatriculation              String?
+  chassisNumber                String?
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  statut                       StatutVoitureSAV               @default(ARRIVE)
+  voitureId                    String
+  Voiture                      Voiture                        @relation(fields: [voitureId], references: [id], onDelete: Cascade)
+  diagnosticArrivee            DiagnosticArrivee[]
+  Reparation                   Reparation[]
+  GarantieSAV                  GarantieSAV[]
+  StatutGarantie               StatutGarantieSAV              @default(EN_COURS)
+  deplacementSAV               DeplacementSAV                 @default(ARRIVEE)
+  VisuelDefaut                 VisuelDefaut[]
+  RapportMaintenanceSAV        RapportMaintenanceSAV[]
+  CheckListsSAV                CheckListsSAV[]
+  voitureSavGarantieId         String?
+  VoitureSavGarantie           VoitureSavGarantie?            @relation(fields: [voitureSavGarantieId], references: [id], onDelete: SetNull)
+  clientSAVId                  String
+  ClientSAV                    ClientSAV                      @relation(fields: [clientSAVId], references: [id], onDelete: Cascade)
+  diagnosticOffert             DiagnosticOffert[]
+  InterventionDiagnosticOffert InterventionDiagnosticOffert[]
+}
+
+model VoitureSavGarantie {
+  id               String       @id @default(uuid())
+  marqueVoiture    String       @default("KPANDJI")
+  modelVoiture     String
+  chassisNumber    String?
+  immatriculation  String
+  garantieSAVbadge Boolean      @default(true)
+  VoitureSAV       VoitureSAV[]
+}
+
+enum DeplacementSAV {
+  ARRIVEE
+  DIAGNOSTIQUE
+  PREPARATION
+  PROFORMA
+  MAINTENANCE
+  SORTIE_MAINTENANCE
+  TEST_FINAL
+  RAPPORT_FINAL
+  RETOUR_EN_SAV
+}
+
+enum StatutGarantieSAV {
+  EN_COURS
+  FIN_INTERVENTION_GARANTIESAV_EN_COURS
+  GARANTIESAV_EN_COURS
+  GARANTIESAV_TERMINE
+  PAS_DE_GARANTIE
+}
+
+enum TypeRapportMaintenanceSAV {
+  AUTOMATIQUE
+  MANUEL
+  COMPLET
+}
+
+enum StatutRapportMaintenanceSAV {
+  BROUILLON
+  VALIDE
+  ARCHIVE
+}
+
+/// Rapport consolidé de toutes les activités SAV d'un véhicule
+/// (diagnostic à l'arrivée, défauts visuels, réparations, pièces, maintenance).
+
+model RapportMaintenanceSAV {
+  id                String                      @id @default(uuid())
+  titre             String
+  /// Synthèse auto-générée à partir des activités du dossier VoitureSAV.
+  contenuAuto       String?                     @db.Text
+  /// Notes complémentaires rédigées manuellement.
+  contenu           String?                     @db.Text
+  observations      String?                     @db.Text
+  type              TypeRapportMaintenanceSAV   @default(COMPLET)
+  statut            StatutRapportMaintenanceSAV @default(BROUILLON)
+  /// Instantané JSON des activités au moment de la génération
+  /// (IDs diagnosticArrivee, reparation, visuelDefaut, factures…).
+  snapshotActivites Json?
+  voitureSAVId      String
+  voitureSAV        VoitureSAV                  @relation(fields: [voitureSAVId], references: [id], onDelete: Cascade)
+  redacteurId       String?
+  redacteur         User?                       @relation(fields: [redacteurId], references: [id], onDelete: SetNull)
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  @@index([voitureSAVId])
+  @@index([statut])
+}
+
+enum StatutVoitureSAV {
+  ARRIVE
+  DIAGNOSTIC_FINI
+  PREPARATION_FINI
+  EN_MAINTENANCE
+  EN_MAINTENANCE_EN_ATTENTE
+  EN_MAINTENANCE_EN_COURS
+  EN_MAINTENANCE_FINI
+  EN_TRAITEMENT_EN_COURS
+  EN_TRAITEMENT_FINI
+  FIN_INTERVENTION_GARANTIESAV_EN_COURS
+  TESTE_EN_COURS
+  TESTE_FINAL
+  TERMINE
+  ANNULE
+}
+
+model VisuelDefaut {
+  id           String     @id @default(uuid())
+  nom          String
+  description  String?
+  image        String?
+  voitureSAVId String
+  voitureSAV   VoitureSAV @relation(fields: [voitureSAVId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model CatergorieDiagnostic {
+  id                String              @id @default(uuid())
+  nom               String
+  description       String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  diagnosticArrivee DiagnosticArrivee[]
+  DetailDiagnostic  DetailDiagnostic[]
+  Maintenance       Maintenance[]
+}
+
+model DetailDiagnostic {
+  id                           String                         @id @default(uuid())
+  nom                          String
+  description                  String?
+  prix_unitaire                Decimal?                       @default(0) @db.Decimal(18, 2)
+  diagnosticArriveeId          String?
+  diagnosticArrivee            DiagnosticArrivee?             @relation(fields: [diagnosticArriveeId], references: [id], onDelete: Cascade)
+  reparationId                 String?
+  reparation                   Reparation?                    @relation(fields: [reparationId], references: [id], onDelete: Cascade)
+  garantieSAVId                String?
+  garantieSAV                  GarantieSAV?                   @relation(fields: [garantieSAVId], references: [id], onDelete: Cascade)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  catergorieDiagnosticId       String
+  catergorieDiagnostic         CatergorieDiagnostic           @relation(fields: [catergorieDiagnosticId], references: [id], onDelete: Cascade)
+  PieceSAV                     PieceSAV[]
+  InterventionDiagnosticOffert InterventionDiagnosticOffert[]
+}
+
+model DiagnosticArrivee {
+  id                     String               @id @default(uuid())
+  voitureSAVId           String
+  voitureSAV             VoitureSAV           @relation(fields: [voitureSAVId], references: [id], onDelete: Cascade)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  catergorieDiagnosticId String
+  catergorieDiagnostic   CatergorieDiagnostic @relation(fields: [catergorieDiagnosticId], references: [id], onDelete: Cascade)
+  DetailDiagnostic       DetailDiagnostic[]
+  PieceSAV               PieceSAV[]
+  DiagnosticOffert       DiagnosticOffert[]
+}
+
+model DiagnosticOffert {
+  id                             String                        @id @default(uuid())
+  libelle                        String
+  date_activation                DateTime
+  date_fin                       DateTime
+  voitureSAVId                   String?
+  voitureSAV                     VoitureSAV?                   @relation(fields: [voitureSAVId], references: [id], onDelete: Cascade)
+  diagnosticArriveeId            String?
+  diagnosticArrivee              DiagnosticArrivee?            @relation(fields: [diagnosticArriveeId], references: [id], onDelete: Cascade)
+  interventionDiagnosticOffertId String?
+  interventionDiagnosticOffert   InterventionDiagnosticOffert? @relation(fields: [interventionDiagnosticOffertId], references: [id], onDelete: Cascade)
+  createdAt                      DateTime                      @default(now())
+  updatedAt                      DateTime                      @updatedAt
+}
+
+model InterventionDiagnosticOffert {
+  id                   String              @id @default(uuid())
+  date_Intervention    DateTime
+  typeProduitUtilise   String
+  niveau_Intervention  Int                 @default(1)
+  typeDiagnosticOffert DiagnosticOffert[]
+  PieceSAV             PieceSAV[]
+  voitureSAVId         String
+  voitureSAV           VoitureSAV          @relation(fields: [voitureSAVId], references: [id], onDelete: Cascade)
+  detailDiagnosticId   String?
+  detailDiagnostic     DetailDiagnostic?   @relation(fields: [detailDiagnosticId], references: [id], onDelete: SetNull)
+  groupePersonnelSAVId String?
+  groupePersonnelSAV   GroupePersonnelSAV? @relation(fields: [groupePersonnelSAVId], references: [id], onDelete: SetNull)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([voitureSAVId])
+  @@index([detailDiagnosticId])
+}
+
+model PieceSAV {
+  id                String   @id @default(uuid())
+  nom               String
+  model_voiture     String?
+  marque_piece      String?
+  part_code         String?
+  description       String?
+  image             String?
+  emplacement       String?
+  origine           String?
+  prix_achat        Decimal? @default(0)
+  prix_vente        Decimal? @default(0)
+  quantite_sortie   Int      @default(0)
+  quantite_entree   Int      @default(0)
+  quantite_restante Int      @default(0)
+  quantite_initiale Int      @default(0)
+
+  reparationId  String?
+  reparation    Reparation?  @relation(fields: [reparationId], references: [id], onDelete: Cascade)
+  garantieSAVId String?
+  garantieSAV   GarantieSAV? @relation(fields: [garantieSAVId], references: [id], onDelete: Cascade)
+
+  diagnosticArriveeId String?
+  diagnosticArrivee   DiagnosticArrivee? @relation(fields: [diagnosticArriveeId], references: [id], onDelete: Cascade)
+
+  detailDiagnosticId   String?
+  detailDiagnostic     DetailDiagnostic? @relation(fields: [detailDiagnosticId], references: [id], onDelete: SetNull)
+  /// Quantité sortie réservée à cette ligne de diagnostic (même ligne que detailDiagnosticId)
+  quantiteSortieDetail Int               @default(0)
+
+  interventionDiagnosticOffertId String?
+  interventionDiagnosticOffert   InterventionDiagnosticOffert? @relation(fields: [interventionDiagnosticOffertId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reparation {
+  id                       String   @id @default(uuid())
+  categorie_reparation     String
+  detail_reparation        String?
+  quantite                 Int      @default(0)
+  prix_unitaire            Decimal?
+  horaire_travail_prix     Decimal?
+  horaire_travail_duration String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  voitureSAVId         String
+  voitureSAV           VoitureSAV           @relation(fields: [voitureSAVId], references: [id], onDelete: Cascade)
+  statut               StatutReparation     @default(EN_TRAITEMENT)
+  DetailDiagnostic     DetailDiagnostic[]
+  PieceSAV             PieceSAV[]
+  FactureProformaSAV   FactureProformaSAV[]
+  Maintenance          Maintenance[]
+  groupePersonnelSAVId String?
+  groupePersonnelSAV   GroupePersonnelSAV?  @relation(fields: [groupePersonnelSAVId], references: [id], onDelete: SetNull)
+}
+
+enum StatutReparation {
+  EN_ATTENTE
+  EN_TRAITEMENT
+  TESTE
+  TERMINE
+  ANNULE
+  EN_MAINTENANCE
+}
+
+model GarantieSAV {
+  id                       String   @id @default(uuid())
+  categorie_garantie       String
+  nom_garantie             String?
+  quantite_garantie_offert Int?
+  prix_unitaire            Decimal? @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  voitureSAVId         String?
+  voitureSAV           VoitureSAV?          @relation(fields: [voitureSAVId], references: [id], onDelete: SetNull)
+  statut               StatutGarantie       @default(EN_TRAITEMENT)
+  DetailDiagnostic     DetailDiagnostic[]
+  PieceSAV             PieceSAV[]
+  FactureProformaSAV   FactureProformaSAV[]
+  Maintenance          Maintenance[]
+  groupePersonnelSAVId String?
+  groupePersonnelSAV   GroupePersonnelSAV?  @relation(fields: [groupePersonnelSAVId], references: [id], onDelete: SetNull)
+}
+
+enum StatutGarantie {
+  EN_ATTENTE
+  EN_TRAITEMENT
+  TESTE
+  TERMINE
+  ANNULE
+  EN_MAINTENANCE
+}
+
+model Maintenance {
+  id                     String                @id @default(uuid())
+  nom                    String
+  description            String?
+  duree_maintenance      String?
+  prix_maintenance       Decimal?
+  reparationId           String
+  reparation             Reparation            @relation(fields: [reparationId], references: [id], onDelete: Cascade)
+  garantieSAVId          String?
+  garantieSAV            GarantieSAV?          @relation(fields: [garantieSAVId], references: [id], onDelete: Cascade)
+  catergorieDiagnosticId String?
+  catergorieDiagnostic   CatergorieDiagnostic? @relation(fields: [catergorieDiagnosticId], references: [id], onDelete: SetNull)
+  factureProformaSAVs    FactureProformaSAV[]
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  statut                 StatutMaintenance     @default(EN_ATTENTE)
+}
+
+enum StatutMaintenance {
+  EN_ATTENTE
+  EN_COURS
+  TERMINEE
+  ANNULE
+}
+
+model FactureProformaSAV {
+  id             String        @id @default(uuid())
+  numero_facture String
+  date_facture   DateTime
+  montant_ht     Decimal       @default(0) @db.Decimal(18, 2)
+  statut_facture StatusFacture @default(EN_ATTENTE)
+  remise         Decimal       @default(0) @db.Decimal(18, 2)
+
+  montant_net_ht Decimal      @db.Decimal(18, 2)
+  tva            Decimal?     @db.Decimal(18, 2)
+  montant_tva    Decimal      @default(0) @db.Decimal(18, 2)
+  total_ttc      Decimal      @default(0) @db.Decimal(18, 2)
+  avance_payee   Decimal      @default(0) @db.Decimal(18, 2)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  reparationId   String
+  reparation     Reparation   @relation(fields: [reparationId], references: [id], onDelete: Cascade)
+  maintenanceId  String
+  maintenance    Maintenance  @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  garantieSAVId  String?
+  garantieSAV    GarantieSAV? @relation(fields: [garantieSAVId], references: [id], onDelete: Cascade)
+}
+
+model PersonnelSAV {
+  id                   String              @id @default(uuid())
+  nom                  String
+  prenom               String
+  email                String
+  telephone            String
+  specialite           String
+  groupePersonnelSAVId String
+  groupePersonnelSAV   GroupePersonnelSAV  @relation("PersonnelGroupeMembres", fields: [groupePersonnelSAVId], references: [id], onDelete: Cascade)
+  groupeOuJeSuisChef   GroupePersonnelSAV? @relation("PersonnelGroupeChef")
+}
+
+model GroupePersonnelSAV {
+  id                           String                         @id @default(uuid())
+  nom                          String
+  chefGroupeId                 String?                        @unique
+  chefGroupe                   PersonnelSAV?                  @relation("PersonnelGroupeChef", fields: [chefGroupeId], references: [id], onDelete: SetNull)
+  personnelSAVs                PersonnelSAV[]                 @relation("PersonnelGroupeMembres")
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  reparations                  Reparation[]
+  garanties                    GarantieSAV[]
+  InterventionDiagnosticOffert InterventionDiagnosticOffert[]
+}
+
+enum StatutCheckListSAV {
+  EN_ATTENTE
+  ECHEC
+  VALIDE
+  TERMINEE
+  EN_COURS
+  ANNULE
+}
+
+enum TypeCheckListSAV {
+  RECEPTION
+  PREPARATION
+  FINALE
+}
+
+/// Check-list de réception et de contrôle du véhicule (SAV).
+
+model CheckListsSAV {
+  id     String             @id @default(uuid())
+  titre  String             @default("Check-list de réception et de contrôle du véhicule")
+  statut StatutCheckListSAV @default(EN_ATTENTE)
+  type   TypeCheckListSAV   @default(RECEPTION)
+
+  // 1. Informations générales
+  date                  DateTime @default(now())
+  numeroOrdreReparation String?
+  nomClient             String?
+  telephone             String?
+  marque                String?
+  modele                String?
+  immatriculation       String?
+  numeroChassis         String?
+  kilometrage           Int?
+  niveauCarburant       String?
+
+  // 2. État extérieur
+  pareBrise              Boolean @default(false)
+  vitresLaterales        Boolean @default(false)
+  lunetteArriere         Boolean @default(false)
+  capot                  Boolean @default(false)
+  pareChocsAvant         Boolean @default(false)
+  pareChocsArriere       Boolean @default(false)
+  ailesAvant             Boolean @default(false)
+  ailesArriere           Boolean @default(false)
+  portes                 Boolean @default(false)
+  toit                   Boolean @default(false)
+  coffre                 Boolean @default(false)
+  retroviseurs           Boolean @default(false)
+  essuieGlaces           Boolean @default(false)
+  eclairageAvantArriere  Boolean @default(false)
+  plaquesImmatriculation Boolean @default(false)
+
+  // 3. Pneumatiques
+  pressionCorrecte    Boolean @default(false)
+  usureReguliere      Boolean @default(false)
+  roueSecoursPresente Boolean @default(false)
+  cricPresent         Boolean @default(false)
+  cleRouePresente     Boolean @default(false)
+
+  // 4. Compartiment moteur
+  niveauHuileMoteur        Boolean @default(false)
+  liquideRefroidissement   Boolean @default(false)
+  liquideFrein             Boolean @default(false)
+  liquideDirectionAssistee Boolean @default(false)
+  liquideLaveGlace         Boolean @default(false)
+  batterie                 Boolean @default(false)
+  courroies                Boolean @default(false)
+  absenceFuite             Boolean @default(false)
+
+  // 5. Habitacle
+  tableauBord            Boolean @default(false)
+  temoinsAllumes         Boolean @default(false)
+  climatisation          Boolean @default(false)
+  chauffage              Boolean @default(false)
+  klaxon                 Boolean @default(false)
+  ceinturesSecurite      Boolean @default(false)
+  sieges                 Boolean @default(false)
+  leveVitres             Boolean @default(false)
+  verrouillageCentralise Boolean @default(false)
+  autoradio              Boolean @default(false)
+
+  // 6. Électricité
+  feuxPosition       Boolean @default(false)
+  feuxCroisement     Boolean @default(false)
+  feuxRoute          Boolean @default(false)
+  clignotants        Boolean @default(false)
+  feuxStop           Boolean @default(false)
+  feuxRecul          Boolean @default(false)
+  feuxAntibrouillard Boolean @default(false)
+
+  // 7. Contrôle mécanique
+  controleMoteur        Boolean @default(false)
+  controleEmbrayage     Boolean @default(false)
+  controleBoiteVitesses Boolean @default(false)
+  controleDirection     Boolean @default(false)
+  controleSuspension    Boolean @default(false)
+  controleFreinage      Boolean @default(false)
+  controleTransmission  Boolean @default(false)
+
+  // 8. Essai routier
+  demarrageNormal      Boolean @default(false)
+  accelerationCorrecte Boolean @default(false)
+  freinageEfficace     Boolean @default(false)
+  directionStable      Boolean @default(false)
+  absenceVibrations    Boolean @default(false)
+  absenceBruitAnormal  Boolean @default(false)
+
+  // 9. Accessoires remis par le client
+  cle1                  Boolean @default(false)
+  cle2                  Boolean @default(false)
+  carteGrise            Boolean @default(false)
+  accessoireRoueSecours Boolean @default(false)
+  accessoireCric        Boolean @default(false)
+  trousseOutils         Boolean @default(false)
+  giletSecurite         Boolean @default(false)
+  triangleSignalisation Boolean @default(false)
+
+  // 10. Observations
+  observations String? @db.Text
+
+  /// Photos du véhicule prises pendant la check-list (URLs).
+  photos String[] @default([])
+
+  voitureSAVId String
+  voitureSAV   VoitureSAV @relation(fields: [voitureSAVId], references: [id], onDelete: Cascade)
+  redacteurId  String?
+  redacteur    User?      @relation(fields: [redacteurId], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([voitureSAVId])
+  @@index([statut])
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  title      String?
+  message    String
+  href       String?
+  type       NotificationType @default(INFO)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  senderId   String?
+  sender     User?            @relation("NotificationsSent", fields: [senderId], references: [id], onDelete: SetNull)
+  receiverId String?
+  receiver   User?            @relation("NotificationsReceived", fields: [receiverId], references: [id], onDelete: SetNull)
+  read       Boolean          @default(false)
+}
+
+enum NotificationType {
+  MESSAGE
+  INFO
+  SUCCESS
+  URGENT
+  ERROR
+}
+
+model Agenda {
+  id                    String                 @id @default(uuid())
+  titre                 String
+  description           String?
+  date                  DateTime
+  heureDebut            DateTime
+  heureFin              DateTime
+  lieu                  String?
+  color                 String                 @default("indigo")
+  type                  AgendaType             @default(RENDEZ_VOUS_AVENIR)
+  statut                AgendaStatut           @default(EN_ATTENTE)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  userId                String
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rapportActiviteAgenda RapportActiviteAgenda?
+}
+
+model RapportActiviteAgenda {
+  id String @id @default(uuid())
+
+  // Legacy JSON blob (kept optional for backward compatibility with existing rows).
+  rapport String?
+
+  // 1. En-tête
+  lieu         String?
+  organisateur String?
+  redacteur    String?
+
+  // 3. Objectif
+  contexte     String?
+  butPrincipal String?
+
+  // 8. Difficultés
+  difficulteProblemes String?
+  difficulteRisques   String?
+
+  // 9. Prochaines étapes
+  actionsFutures String?
+  dateProchaine  DateTime?
+
+  // 10. Conclusion
+  conclusionResume     String?
+  conclusionImpression String?
+  conclusionImportance String?
+
+  // 2. Participants
+  listePresents ListePresent[]
+
+  // Participants inscrits via QR code (auto-inscription sur le terrain).
+  listeParticipantsQrCode ListeParticipantQrCode[]
+
+  // 4. Ordre du jour
+  listeOrdreDuJour ListeOrdreDuJour[]
+
+  // 5. Déroulement des échanges
+  listePointsAbordes ListePointsAbordes[]
+
+  // 6. Décisions prises
+  listeDecisionsPrises ListeDecisionsPrises[]
+
+  // 7. Actions à mener
+  listeActionsAExecuter ListeActionsAExecuter[]
+
+  // Ownership: direct link to the authenticated user who authored the report.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  agendaId String @unique
+  agenda   Agenda @relation(fields: [agendaId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ListePresent {
+  id                      String                @id @default(uuid())
+  nom                     String
+  prenoms                 String
+  email                   String?
+  telephone               String?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  rapportActiviteAgendaId String
+  rapportActiviteAgenda   RapportActiviteAgenda @relation(fields: [rapportActiviteAgendaId], references: [id], onDelete: Cascade)
+}
+
+model ListeParticipantQrCode {
+  id                      String                @id @default(uuid())
+  nom                     String
+  prenoms                 String
+  email                   String?
+  telephone               String?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  rapportActiviteAgendaId String
+  rapportActiviteAgenda   RapportActiviteAgenda @relation(fields: [rapportActiviteAgendaId], references: [id], onDelete: Cascade)
+}
+
+model ListeOrdreDuJour {
+  id                      String                @id @default(uuid())
+  ordreDuJour             String
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  rapportActiviteAgendaId String
+  rapportActiviteAgenda   RapportActiviteAgenda @relation(fields: [rapportActiviteAgendaId], references: [id], onDelete: Cascade)
+}
+
+model ListePointsAbordes {
+  id                        String                @id @default(uuid())
+  pointAborde               String
+  resumePointsAbordes       String?
+  problemesPointsAbordes    String?
+  propositionsPointsAbordes String?
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  rapportActiviteAgendaId   String
+  rapportActiviteAgenda     RapportActiviteAgenda @relation(fields: [rapportActiviteAgendaId], references: [id], onDelete: Cascade)
+}
+
+model ListeDecisionsPrises {
+  id                      String                @id @default(uuid())
+  decisionPrise           String
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  rapportActiviteAgendaId String
+  rapportActiviteAgenda   RapportActiviteAgenda @relation(fields: [rapportActiviteAgendaId], references: [id], onDelete: Cascade)
+}
+
+model ListeActionsAExecuter {
+  id                      String                @id @default(uuid())
+  actionAExecuter         String
+  responsable             String
+  dateExecution           DateTime?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  rapportActiviteAgendaId String
+  rapportActiviteAgenda   RapportActiviteAgenda @relation(fields: [rapportActiviteAgendaId], references: [id], onDelete: Cascade)
+}
+
+model Documentation {
+  id        String            @id @default(uuid())
+  nom       String
+  type      TypeDocumentation
+  fichier   String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model DossierContentieux {
+  id                           String                         @id @default(uuid())
+  numeroDossier                String                         @unique
+  typeDossier                  TypeDossierContentieux
+  statutDossier                StatutDossierContentieux
+  description                  String
+  objet                        String
+  dateOuverture                DateTime
+  dateCloture                  DateTime?
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  userId                       String
+  user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partiesPrenantes             PartiesPrenantes[]
+  gestionAudiences             GestionAudiences[]
+  documentsContentieux         DocumentsContentieux[]
+  gestionDesDecisionsDeJustice GestionDesDecisionsDeJustice[]
+}
+
+model PartiesPrenantes {
+  id                   String             @id @default(uuid())
+  nom                  String
+  prenom               String
+  email                String?
+  telephone            String?
+  typePartie           TypePartie
+  dossierContentieuxId String
+  dossierContentieux   DossierContentieux @relation(fields: [dossierContentieuxId], references: [id], onDelete: Cascade)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model DocumentsContentieux {
+  id                   String                  @id @default(uuid())
+  nom                  String
+  typeDocument         TypeDocumentContentieux
+  dossierContentieuxId String
+  dossierContentieux   DossierContentieux      @relation(fields: [dossierContentieuxId], references: [id], onDelete: Cascade)
+  nomFichier           String
+  dateUpload           DateTime
+  url                  String
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+}
+
+model GestionAudiences {
+  id                   String             @id @default(uuid())
+  dateAudience         DateTime
+  heureAudience        String
+  rjAudience           String
+  statutAudience       StatutAudience
+  salleAudience        String
+  tribunalAudience     String
+  resultatAudience     String
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  dossierContentieuxId String
+  dossierContentieux   DossierContentieux @relation(fields: [dossierContentieuxId], references: [id], onDelete: Cascade)
+}
+
+model GestionDesDecisionsDeJustice {
+  id                   String                  @id @default(uuid())
+  dateDecision         DateTime
+  heureDecision        String
+  lieuDecision         String
+  statutDecision       StatutDecisionDeJustice
+  dossierContentieuxId String
+  dossierContentieux   DossierContentieux      @relation(fields: [dossierContentieuxId], references: [id], onDelete: Cascade)
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+}
+
+model ContratsEtPartenariats {
+  id                   String                 @id @default(uuid())
+  titre                String
+  typeContrat          TypeContrat
+  description          String
+  nomFichier           String?
+  url                  String?
+  dateUpload           DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  partenaireSignataire PartenaireSignataire[]
+}
+
+enum TypeContrat {
+  CONTRAT
+  PARTENARIAT
+  DELEGATION
+  AGREMENT
+  CONVENTION
+  CONTRAT_DE_LOCATION
+  CONTRAT_DE_LOCATION_VENTE
+  CONTRAT_DE_LOCATION_VENTE_MISE_EN_LOCATION
+  CONTRAT_DE_LOCATION_VENTE_MISE_EN_LOCATION_VENTE
+}
+
+model PartenaireSignataire {
+  id                      String                 @id @default(uuid())
+  nom                     String
+  prenom                  String
+  email                   String?
+  telephone               String?
+  fonction                String?
+  entreprise              String?
+  adresse                 String?
+  ville                   String?
+  codePostal              String?
+  pays                    String?
+  dateSignature           DateTime
+  dateCloture             DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+  contratEtPartenariatsId String
+  contratEtPartenariats   ContratsEtPartenariats @relation(fields: [contratEtPartenariatsId], references: [id], onDelete: Cascade)
+}
+
+model DossierVeilleJuridique {
+  id            String                   @id @default(uuid())
+  titre         String
+  description   String
+  dateOuverture DateTime
+  dateCloture   DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  typeDossier   NonConformiteJuridique[]
+  nouvellesLoi  NouvelleLoi[]
+}
+
+model NonConformiteJuridique {
+  id                       String                 @id @default(uuid())
+  titre                    String
+  description              String
+  typeNonConformite        String
+  statutNonConformite      String
+  dateOuverture            DateTime
+  dateCloture              DateTime?
+  dossierVeilleJuridiqueId String
+  dossierVeilleJuridique   DossierVeilleJuridique @relation(fields: [dossierVeilleJuridiqueId], references: [id], onDelete: Cascade)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  ecartJuridique           EcartJuridique[]
+  risqueJuridique          RisqueJuridique[]
+  actionCorrective         ActionCorrective[]
+  formation                Formation[]
+}
+
+model EcartJuridique {
+  id                       String                 @id @default(uuid())
+  obligationJuridique      String
+  situationObservee        String
+  descriptionEcart         String?
+  dateDetection            DateTime?
+  serviceConcerne          String?
+  nonConformiteJuridiqueId String
+  nonConformiteJuridique   NonConformiteJuridique @relation(fields: [nonConformiteJuridiqueId], references: [id], onDelete: Cascade)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  risqueJuridique          RisqueJuridique?
+  nouvelleLoi              NouvelleLoi[]
+  actionCorrective         ActionCorrective[]
+}
+
+model RisqueJuridique {
+  id                       String                 @id @default(uuid())
+  descriptionRisque        String
+  probabilite              String?
+  impact                   String?
+  niveauRisque             String?
+  mesurePreventive         String?
+  nonConformiteJuridiqueId String
+  nonConformiteJuridique   NonConformiteJuridique @relation(fields: [nonConformiteJuridiqueId], references: [id], onDelete: Cascade)
+  ecartJuridiqueId         String?                @unique
+  ecartJuridique           EcartJuridique?        @relation(fields: [ecartJuridiqueId], references: [id], onDelete: Cascade)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  nouvelleLoi              NouvelleLoi[]
+  actionCorrective         ActionCorrective[]
+}
+
+model NouvelleLoi {
+  id                       String                 @id @default(uuid())
+  titre                    String
+  chapitre                 String
+  article                  String
+  paragraphe               String?
+  dateOuverture            DateTime
+  dateCloture              DateTime?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  ecartJuridiqueId         String
+  ecartJuridique           EcartJuridique         @relation(fields: [ecartJuridiqueId], references: [id], onDelete: Cascade)
+  risqueJuridiqueId        String?
+  risqueJuridique          RisqueJuridique?       @relation(fields: [risqueJuridiqueId], references: [id], onDelete: Cascade)
+  dossierVeilleJuridiqueId String
+  dossierVeilleJuridique   DossierVeilleJuridique @relation(fields: [dossierVeilleJuridiqueId], references: [id], onDelete: Cascade)
+  actionCorrective         ActionCorrective[]
+}
+
+model ActionCorrective {
+  id                       String                 @id @default(uuid())
+  titre                    String
+  description              String
+  actionCorrective         String
+  dateDebut                DateTime
+  dateCloture              DateTime?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  nouvelleLoiId            String
+  nouvelleLoi              NouvelleLoi            @relation(fields: [nouvelleLoiId], references: [id], onDelete: Cascade)
+  ecartJuridiqueId         String
+  ecartJuridique           EcartJuridique         @relation(fields: [ecartJuridiqueId], references: [id], onDelete: Cascade)
+  risqueJuridiqueId        String?
+  risqueJuridique          RisqueJuridique?       @relation(fields: [risqueJuridiqueId], references: [id], onDelete: Cascade)
+  nonConformiteJuridiqueId String
+  nonConformiteJuridique   NonConformiteJuridique @relation(fields: [nonConformiteJuridiqueId], references: [id], onDelete: Cascade)
+}
+
+model Formation {
+  id                       String                 @id @default(uuid())
+  titre                    String
+  description              String
+  cible                    String
+  typeFormation            String?
+  dateDebut                DateTime
+  dateCloture              DateTime?
+  nonConformiteJuridiqueId String
+  nonConformiteJuridique   NonConformiteJuridique @relation(fields: [nonConformiteJuridiqueId], references: [id], onDelete: Cascade)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+}
+
+enum TypeDocumentProjetPonctuel {
+  DOCUMENTATION
+  MEMOIRE
+  REPORT
+  PRESENTATION
+  AUTRE
+}
+
+enum StatutProjetPonctuel {
+  EN_ATTENTE
+  EN_COURS
+  TERMINEE
+  ANNULE
+}
+
+model ProjetPonctuel {
+  id                     String                      @id @default(uuid())
+  titre                  String
+  description            String
+  dateDebut              DateTime
+  dateCloture            DateTime?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  userId                 String
+  user                   User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responsableResponsable ProjetPonctuelResponsable[]
+  statutProjet           StatutProjetPonctuel
+  activite               ProjetPonctuelActivite[]
+}
+
+model ProjetPonctuelActivite {
+  id                     String                          @id @default(uuid())
+  titre                  String
+  description            String
+  dateDebut              DateTime
+  dateCloture            DateTime?
+  statutActivite         StatutProjetPonctuelActivite    @default(NOUVEAU)
+  createdAt              DateTime                        @default(now())
+  updatedAt              DateTime                        @updatedAt
+  userId                 String
+  user                   User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projetPonctuelId       String
+  projetPonctuel         ProjetPonctuel                  @relation(fields: [projetPonctuelId], references: [id], onDelete: Cascade)
+  responsableResponsable ProjetPonctuelResponsable[]
+  document               ProjetPonctuelDocument[]
+  message                ProjetPonctuelActiviteMessage[]
+}
+
+model ProjetPonctuelResponsable {
+  id                       String                 @id @default(uuid())
+  userId                   String
+  user                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projetPonctuelId         String
+  projetPonctuel           ProjetPonctuel         @relation(fields: [projetPonctuelId], references: [id], onDelete: Cascade)
+  projetPonctuelActiviteId String
+  projetPonctuelActivite   ProjetPonctuelActivite @relation(fields: [projetPonctuelActiviteId], references: [id], onDelete: Cascade)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+}
+
+enum StatutProjetPonctuelActivite {
+  NOUVEAU
+  EN_ATTENTE
+  EN_COURS
+  EN_ATTENTE_VALIDATION
+  VALIDEE
+  NON_VALIDEE
+  TRANSFEREE
+  TERMINEE
+  ANNULE
+}
+
+model ProjetPonctuelActiviteMessage {
+  id                       String                            @id @default(uuid())
+  message                  String
+  createdAt                DateTime                          @default(now())
+  updatedAt                DateTime                          @updatedAt
+  typeMessage              TypeMessageProjetPonctuelActivite
+  userId                   String
+  user                     User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projetPonctuelActiviteId String
+  projetPonctuelActivite   ProjetPonctuelActivite            @relation(fields: [projetPonctuelActiviteId], references: [id], onDelete: Cascade)
+}
+
+enum TypeMessageProjetPonctuelActivite {
+  EN_ATTENTE
+  LU
+  NON_LU
+  REPONDU
+  SUPPRIME
+}
+
+model ProjetPonctuelDocument {
+  id                       String                     @id @default(uuid())
+  nom                      String
+  typeDocument             TypeDocumentProjetPonctuel
+  url                      String
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  userId                   String
+  user                     User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projetPonctuelActiviteId String
+  projetPonctuelActivite   ProjetPonctuelActivite     @relation(fields: [projetPonctuelActiviteId], references: [id], onDelete: Cascade)
+}
+
+model ResponsableProjetRoutine {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  responsableProjetRoutineMessage TacheActiviteProjetRoutineMessage[]
+
+  roleMissionProjetRoutineId String
+  roleMissionProjetRoutine   RoleMissionProjetRoutine @relation(fields: [roleMissionProjetRoutineId], references: [id], onDelete: Cascade)
+
+  tacheActiviteProjetRoutineId String?
+  tacheActiviteProjetRoutine   TacheActiviteProjetRoutine? @relation(fields: [tacheActiviteProjetRoutineId], references: [id], onDelete: Cascade)
+
+  activiteProjetRoutineId String?
+  activiteProjetRoutine   ActiviteProjetRoutine? @relation(fields: [activiteProjetRoutineId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RoleMissionProjetRoutine {
+  id          String  @id @default(uuid())
+  libelle     String
+  description String?
+
+  responsableProjetRoutine ResponsableProjetRoutine[]
+
+  activiteProjetRoutine ActiviteProjetRoutine[]
+
+  createdAt                              DateTime                                 @default(now())
+  updatedAt                              DateTime                                 @updatedAt
+  indicateurObjectifMensuelProjetRoutine IndicateurObjectifMensuelProjetRoutine[]
+}
+
+model IndicateurObjectifMensuelProjetRoutine {
+  id                                 String                   @id @default(uuid())
+  libelle                            String
+  description                        String?
+  objectifMensuel                    String
+  nombreObjectifsMensuels            Int
+  nombreObjectifsMensuelsAtteints    Int
+  nombreObjectifsMensuelsNonAtteints Int
+  roleMissionProjetRoutineId         String
+  roleMissionProjetRoutine           RoleMissionProjetRoutine @relation(fields: [roleMissionProjetRoutineId], references: [id], onDelete: Cascade)
+}
+
+model ActiviteProjetRoutine {
+  id                         String                       @id @default(uuid())
+  libelle                    String
+  description                String?
+  dateDebut                  DateTime
+  dateCloture                DateTime?
+  mois                       String?
+  statutActivite             StatutActiviteProjetRoutine  @default(NOUVEAU)
+  createdAt                  DateTime                     @default(now())
+  updatedAt                  DateTime                     @updatedAt
+  roleMissionProjetRoutineId String
+  roleMissionProjetRoutine   RoleMissionProjetRoutine     @relation(fields: [roleMissionProjetRoutineId], references: [id], onDelete: Cascade)
+  tacheActiviteProjetRoutine TacheActiviteProjetRoutine[]
+  responsableProjetRoutine   ResponsableProjetRoutine[]
+}
+
+model TacheActiviteProjetRoutine {
+  id          String                           @id @default(uuid())
+  libelle     String
+  description String?
+  dateDebut   DateTime
+  dateCloture DateTime?
+  statutTache StatutTacheActiviteProjetRoutine @default(NOUVEAU)
+
+  responsableTacheResponsable ResponsableTacheResponsable[]
+
+  createdByUserId String?
+  createdBy       User?   @relation("TacheCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  activiteProjetRoutineId  String
+  activiteProjetRoutine    ActiviteProjetRoutine                @relation(fields: [activiteProjetRoutineId], references: [id], onDelete: Cascade)
+  responsableProjetRoutine ResponsableProjetRoutine[]
+  message                  TacheActiviteProjetRoutineMessage[]
+  document                 TacheActiviteProjetRoutineDocument[] @relation("TacheDocuments")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TacheActiviteProjetRoutineMessage {
+  id          String                                @id @default(uuid())
+  message     String
+  createdAt   DateTime                              @default(now())
+  updatedAt   DateTime                              @updatedAt
+  typeMessage TypeMessageTacheActiviteProjetRoutine
+
+  responsableProjetRoutineId String
+  responsableProjetRoutine   ResponsableProjetRoutine @relation(fields: [responsableProjetRoutineId], references: [id], onDelete: Cascade)
+
+  tacheActiviteProjetRoutineId String
+  tacheActiviteProjetRoutine   TacheActiviteProjetRoutine           @relation(fields: [tacheActiviteProjetRoutineId], references: [id], onDelete: Cascade)
+  document                     TacheActiviteProjetRoutineDocument[] @relation("MessageDocuments")
+}
+
+model TacheActiviteProjetRoutineDocument {
+  id                                  String                                 @id @default(uuid())
+  nom                                 String
+  typeDocument                        TypeDocumentTacheActiviteProjetRoutine
+  url                                 String
+  createdAt                           DateTime                               @default(now())
+  updatedAt                           DateTime                               @updatedAt
+  responsableTacheResponsableId       String
+  responsableTacheResponsable         ResponsableTacheResponsable            @relation(fields: [responsableTacheResponsableId], references: [id], onDelete: Cascade)
+  tacheActiviteProjetRoutineId        String
+  tacheActiviteProjetRoutine          TacheActiviteProjetRoutine             @relation("TacheDocuments", fields: [tacheActiviteProjetRoutineId], references: [id], onDelete: Cascade, map: "TacheRoutineDocument_tache_fkey")
+  tacheActiviteProjetRoutineMessageId String?
+  tacheActiviteProjetRoutineMessage   TacheActiviteProjetRoutineMessage?     @relation("MessageDocuments", fields: [tacheActiviteProjetRoutineMessageId], references: [id], onDelete: Cascade, map: "TacheRoutineDocument_message_fkey")
+}
+
+enum TypeDocumentTacheActiviteProjetRoutine {
+  DOCUMENTATION
+  MEMOIRE
+  AVIS_TECHNIQUE
+  IMAGE
+  VIDEO
+  AUDIO
+  AUTRE
+}
+
+enum TypeMessageTacheActiviteProjetRoutine {
+  EN_ATTENTE
+  LU
+  NON_LU
+  REPONDU
+  SUPPRIME
+}
+
+model ResponsableTacheResponsable {
+  id                           String                               @id @default(uuid())
+  userId                       String
+  user                         User                                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tacheActiviteProjetRoutineId String
+  tacheActiviteProjetRoutine   TacheActiviteProjetRoutine           @relation(fields: [tacheActiviteProjetRoutineId], references: [id], onDelete: Cascade)
+  document                     TacheActiviteProjetRoutineDocument[]
+  createdAt                    DateTime                             @default(now())
+  updatedAt                    DateTime                             @updatedAt
+}
+
+enum StatutTacheActiviteProjetRoutine {
+  NOUVEAU
+  EN_ATTENTE
+  EN_COURS
+  EN_ATTENTE_VALIDATION
+  VALIDEE
+  NON_VALIDEE
+  TRANSFEREE
+  TERMINEE
+  ANNULE
+}
+
+enum StatutActiviteProjetRoutine {
+  NOUVEAU
+  EN_ATTENTE
+  EN_COURS
+  EN_ATTENTE_VALIDATION
+  VALIDEE
+  NON_VALIDEE
+  TRANSFEREE
+  TERMINEE
+  ANNULE
+}
+
+enum StatutDecisionDeJustice {
+  EN_ATTENTE
+  PARTIELLEMENT_EXECUTE
+  EXECUTE
+  NON_EXECUTE
+  CONTESTEE
+  EN_APPEL
+  JUGEMENT
+  ARRET
+  ORDONNANCE
+  APPEL
+  EXECUTION
+  EN_TRAITEMENT
+  EN_COURS
+  TERMINEE
+  ANNULE
+}
+
+enum StatutAudience {
+  RECLAMATION
+  MISE_EN_DEMEURE
+  CONCILIATION
+  MEDIATION
+  ASSIGNATION
+  AUDIENCE
+  JUGEMENT
+  APPEL
+  EXECUTION
+  EN_ATTENTE
+  EN_TRAITEMENT
+  EN_COURS
+  TERMINEE
+  ANNULE
+}
+
+enum TypeDocumentContentieux {
+  CONTRATS
+  FACTURES
+  COURRIERS
+  JUGEMENTS
+  PROCES_VERBAUX
+  PHOTOS
+}
+
+enum TypePartie {
+  PERSONNE_PHYSIQUE
+  PERSONNE_MORALE
+  ENTREPRISE
+  ORGANISATION
+  ADMINISTRATION
+  AUTRE
+}
+
+enum TypeDossierContentieux {
+  CIVIL
+  COMMERCIAL
+  SOCIAL
+  ADMINISTRATIF
+  FISCAL
+  PENAL
+}
+
+enum StatutDossierContentieux {
+  RECLAMATION
+  MISE_EN_DEMEURE
+  CONCILIATION
+  MEDIATION
+  ASSIGNATION
+  AUDIENCE
+  JUGEMENT
+  APPEL
+  EXECUTION
+  EN_ATTENTE
+  EN_TRAITEMENT
+  EN_COURS
+  TERMINEE
+  ANNULE
+}
+
+enum TypeDocumentation {
+  AGREMENT
+  ARF
+  RCCM
+  DFE
+  CNPS
+  RIB
+  CATALOGUE
+  PRESENTATION
+  FICHE_TECHNIQUE
+  CNI
+}
+
+enum AgendaType {
+  RENDEZ_VOUS_AVENIR
+  RENDEZ_VOUS_ANNULE
+  RENDEZ_VOUS_DEPLACE
+  RENDEZ_VOUS_EFFECTUE
+  RENDEZ_VOUS_EN_COURS
+  RENDEZ_VOUS_TERMINEE
+}
+
+enum AgendaStatut {
+  EN_ATTENTE
+  CONFIRME
+  ANNULE
+  DEPLACE
+  EFFECTUE
+  EN_COURS
+  TERMINEE
+}
+
+enum StatutCalendrierSortie {
+  EN_ATTENTE
+  CONFIRME
+  ANNULE
+  DEPLACE
+  EFFECTUE
+  EN_COURS
+  TERMINEE
+}
+
+enum StatutReservationVehicule {
+  EN_ATTENTE
+  CONFIRME
+  ANNULE
+  DEPLACE
+  EFFECTUE
+  EN_COURS
+  TERMINEE
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  COMMERCIAL
+  CHEFUSINE
+  CHEFEQUIPE
+  MAGASINIER
+  RH
+  JURIDIQUE
+  CHEFQUALITE
+  EMPLOYEE
+  SAV
+  LOGISTIQUE
+  FINANCE
+  DIRECTEUR_GENERAL
+  CLIENTELLE
+  COMPTABLE
+  CONCESSIONAIRE
+  SUPERVISEUR
+  COMMUNICATION
+  RESPONSABLE_COMMERCIAL
+  ASSISTANTE
+  INFOGRAPHIE
+  COMMUNITY_MANAGER
+  MARKETING
+  DEVELOPPEUR
+  DESIGNER
+}
+
+enum ChassisFlag {
+  DISPONIBLE
+  OCCUPE
+}
+
+enum CommandeFlag {
+  VENDUE
+  DISPONIBLE
+}
+
+enum EtapeCommande {
+  PROPOSITION
+  VALIDE
+  TRANSITE
+  RENSEIGNEE
+  ARRIVE
+  VERIFIER
+  MONTAGE
+  TESTE
+  PARKING
+  CORRECTION
+  VENTE
+  DECHARGE
+  CHARGE
+  TRANSITE_NON_RENSEIGNE
+  TRANSITE_DEJA_RENSEIGNE
+  DEPOTAGE_EN_COURS
+}
+
+enum EtapeCommandeGroupee {
+  VALIDE
+  TRANSITE
+}
+
+enum EtapeConteneur {
+  EN_ATTENTE
+  CHARGE
+  TRANSITE
+  RENSEIGNE
+  TRANSITE_NON_RENSEIGNE
+  TRANSITE_DEJA_RENSEIGNE
+  ARRIVE
+  DEPOTAGE_EN_COURS
+  VERIFIER
+}
+
+enum EtapeMontage {
+  CREATION
+  VALIDE
+  EXECUTION
+  VERIFICATION
+  CORRECTION
+  TERMINEE
+}
+
+enum EtapeSparePart {
+  TRANSITE
+  TRANSITE_NON_RENSEIGNE
+  TRANSITE_DEJA_RENSEIGNE
+  RENSEIGNE
+  ARRIVE
+  DEPOTAGE_EN_COURS
+  VERIFIER
+  ATTRIBUE
+  CONSOMME
+  RETOUR
+  DECHARGE
+  RANGE
+}
+
+enum EtapeTool {
+  TRANSITE
+  RENSEIGNE
+  ARRIVE
+  VERIFIER
+  ATTRIBUE
+  CONSOMME
+  RETOUR
+  DECHARGE
+}
+
+enum EtatVoiture {
+  PIECES
+  MONTAGE
+  TESTE
+  PARKING
+  CORRECTION
+  VENTE
+  LIVREE
+}
+
+enum ModePaiement {
+  CB
+  CHEQUE
+  VIREMENT
+  CASH
+}
+
+enum Motorisation {
+  ELECTRIQUE
+  ESSENCE
+  DIESEL
+  HYBRIDE
+}
+
+enum OrdreMontageFlag {
+  CREER
+  EXECUTION
+  VERIFICATION
+  CORRECTION
+  TERMINEE
+  VALIDE
+}
+
+enum Qualite {
+  CHEF_EQUIPE
+  MEMBRE_EQUIPE
+}
+
+enum RendezVousStatut {
+  EN_ATTENTE
+  CONFIRME
+  ANNULE
+  DEPLACE
+  EFFECTUE
+}
+
+enum StatusClient {
+  CLIENT
+  PROSPECT
+  ABANDONNE
+  FAVORABLE
+  A_SUIVRE
+}
+
+enum StatusEquipe {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProjectStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PlanActionTaskStage {
+  EN_ATTENTE_DEBUT
+  DEBUT
+  EN_COURS
+  EN_ATTENTE_VALIDATION
+  VALIDEE
+  TERMINEE
+}
+
+enum StatusFacture {
+  EN_ATTENTE
+  PROFORMA
+  FACTURE
+  PAYEE
+  ANNULEE
+}
+
+enum StatusPaiement {
+  EN_ATTENTE
+  PAYE
+  ANNULE
+}
+
+enum StatusVerification {
+  EN_ATTENTE
+  RETROUVE
+  MODIFIE
+  NON_RETROUVE
+}
+
+enum Transmission {
+  AUTOMATIQUE
+  MANUEL
+}
+
+enum TypeCommandeNom {
+  PERSON_INDIVIDUEL
+  ENTREPRISE_CLIENTE
+  INSTITUTION
+  LETTRE_DE_COMMANDE_VALANT_MARCHE
+}
+
+/// département finance — projets commerciaux
+enum StatutFinanceProjet {
+  BROUILLON
+  EN_COURS
+  EN_PAUSE
+  VALIDE
+  TERMINE
+  ANNULE
+}
+
+model FinanceProjet {
+  id                    String                     @id @default(uuid())
+  nom                   String
+  description           String?
+  objectifVolumeAffaire Decimal?                   @db.Decimal(15, 2)
+  dateDebut             DateTime
+  dateFin               DateTime?
+  statut                StatutFinanceProjet        @default(BROUILLON)
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  createdById           String
+  createdBy             User                       @relation("FinanceProjetCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  modelesCibles         FinanceProjetModeleCible[]
+  prospects             FinanceProjetProspect[]
+  objectifs             FinanceProjetObjectif[]
+  responsables          FinanceProjetResponsable[]
+  plansActions          FinancePlanAction[]
+  rapports              FinanceProjetRapport[]
+  budgets               FinanceBudget[]
+  depenses              FinanceDepense[]
+
+  @@index([createdById])
+  @@index([statut])
+  @@index([dateDebut])
+}
+
+model FinanceProjetModeleCible {
+  id             String        @id @default(uuid())
+  projetId       String
+  voitureModelId String
+  createdAt      DateTime      @default(now())
+  projet         FinanceProjet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  voitureModel   VoitureModel  @relation(fields: [voitureModelId], references: [id], onDelete: Cascade)
+
+  @@unique([projetId, voitureModelId])
+  @@index([projetId])
+  @@index([voitureModelId])
+}
+
+model FinanceProjetProspect {
+  id                 String             @id @default(uuid())
+  projetId           String
+  clientId           String?
+  clientEntrepriseId String?
+  createdAt          DateTime           @default(now())
+  projet             FinanceProjet      @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  client             Client?            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientEntreprise   Client_entreprise? @relation(fields: [clientEntrepriseId], references: [id], onDelete: Cascade)
+
+  @@index([projetId])
+  @@index([clientId])
+  @@index([clientEntrepriseId])
+}
+
+model FinanceProjetObjectif {
+  id          String        @id @default(uuid())
+  projetId    String
+  titre       String
+  description String?
+  ordre       Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  projet      FinanceProjet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@index([projetId])
+}
+
+model FinanceProjetResponsable {
+  id        String        @id @default(uuid())
+  projetId  String
+  userId    String
+  createdAt DateTime      @default(now())
+  projet    FinanceProjet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projetId, userId])
+  @@index([projetId])
+  @@index([userId])
+}
+
+model FinancePlanAction {
+  id             String                    @id @default(uuid())
+  projetId       String
+  titre          String
+  dateDebut      DateTime
+  dateFin        DateTime?
+  etapeEnCours   PlanActionTaskStage       @default(EN_ATTENTE_DEBUT)
+  resteAExecuter String?
+  responsableId  String
+  ordre          Int                       @default(0)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  projet         FinanceProjet             @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  responsable    User                      @relation("FinancePlanActionResponsable", fields: [responsableId], references: [id], onDelete: Cascade)
+  taches         FinancePlanActionTache[]
+  acteurs        FinancePlanActionActeur[]
+
+  @@index([projetId])
+  @@index([responsableId])
+  @@index([etapeEnCours])
+}
+
+model FinancePlanActionTache {
+  id             String              @id @default(uuid())
+  planActionId   String
+  titre          String
+  description    String?
+  dateDebut      DateTime?
+  dateFin        DateTime?
+  etape          PlanActionTaskStage @default(EN_ATTENTE_DEBUT)
+  resteAExecuter String?
+  responsableId  String?
+  ordre          Int                 @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  planAction     FinancePlanAction   @relation(fields: [planActionId], references: [id], onDelete: Cascade)
+  responsable    User?               @relation("FinancePlanActionTacheResponsable", fields: [responsableId], references: [id], onDelete: SetNull)
+
+  @@index([planActionId])
+  @@index([responsableId])
+}
+
+model FinancePlanActionActeur {
+  id           String            @id @default(uuid())
+  planActionId String
+  userId       String
+  createdAt    DateTime          @default(now())
+  planAction   FinancePlanAction @relation(fields: [planActionId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([planActionId, userId])
+  @@index([planActionId])
+  @@index([userId])
+}
+
+
+
+model FinanceProjetRapport {
+  id         String        @id @default(uuid())
+  projetId   String
+  titre      String
+  contenu    String?
+  synthese   String?
+  avancement Float?
+  userId     String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  projet     FinanceProjet @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  auteur     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projetId])
+  @@index([userId])
+}
+
+/// département finance — budgets et dépenses
+enum StatutFinanceBudget {
+  BROUILLON
+  VALIDE
+  CLOTURE
+  ANNULE
+}
+
+enum StatutFinanceDepense {
+  BROUILLON
+  SOUMISE
+  VALIDEE
+  PAYEE
+  REJETEE
+  ANNULEE
+}
+
+model FinanceBudget {
+  id           String              @id @default(uuid())
+  nom          String
+  description  String?
+  exercice     Int
+  dateDebut    DateTime
+  dateFin      DateTime?
+  montantPrevu Decimal             @db.Decimal(15, 2)
+  statut       StatutFinanceBudget @default(BROUILLON)
+  projetId     String?
+  createdById  String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  projet       FinanceProjet?      @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  createdBy    User                @relation("FinanceBudgetCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  lignes       FinanceBudgetLigne[]
+  depenses     FinanceDepense[]
+
+  @@index([createdById])
+  @@index([projetId])
+  @@index([statut])
+  @@index([exercice])
+}
+
+model FinanceBudgetLigne {
+  id            String           @id @default(uuid())
+  budgetId      String
+  designation   String
+  categorie     String?
+  montantAlloue Decimal          @db.Decimal(15, 2)
+  ordre         Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  budget        FinanceBudget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  depenses      FinanceDepense[]
+
+  @@index([budgetId])
+}
+
+model FinanceDepense {
+  id              String               @id @default(uuid())
+  budgetId        String?
+  ligneId         String?
+  projetId        String?
+  designation     String
+  description     String?
+  categorie       String?
+  montant         Decimal              @db.Decimal(15, 2)
+  dateDepense     DateTime
+  reference       String?
+  justificatifUrl String?
+  statut          StatutFinanceDepense @default(BROUILLON)
+  createdById     String
+  validatedById   String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  budget          FinanceBudget?       @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  ligne           FinanceBudgetLigne?  @relation(fields: [ligneId], references: [id], onDelete: SetNull)
+  projet          FinanceProjet?       @relation(fields: [projetId], references: [id], onDelete: Cascade)
+  createdBy       User                 @relation("FinanceDepenseCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  validatedBy     User?                @relation("FinanceDepenseValidatedBy", fields: [validatedById], references: [id], onDelete: SetNull)
+
+  @@index([budgetId])
+  @@index([ligneId])
+  @@index([projetId])
+  @@index([createdById])
+  @@index([validatedById])
+  @@index([statut])
+  @@index([dateDepense])
+}
