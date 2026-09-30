@@ -1,6 +1,6 @@
 "use server";
 
-import { clerkClient } from "@clerk/nextjs/server";
+import { clerkClient, auth } from "@clerk/nextjs/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "../prisma";
 import { normalizeUserRole } from "../user-role";
@@ -18,8 +18,7 @@ async function persistOnboardedUser(
     throw new Error("User not found");
   }
 
-  const email =
-    user.emailAddresses[0]?.emailAddress ?? `${user.id}@clerk.temp`;
+  const email = user.emailAddresses[0]?.emailAddress ?? `${user.id}@clerk.temp`;
 
   await (
     await clerkClient()
@@ -76,29 +75,21 @@ async function persistOnboardedUser(
   });
 }
 
-export async function createEmployee(
-  department: string | undefined,
-  clerkId: string,
-  role: string | UserRole,
-) {
-  try {
-    await persistOnboardedUser(clerkId, role, department);
-    return { success: true };
-  } catch (error) {
-    console.error(error);
-    return { success: false };
-  }
-}
-
 export async function completeUserOnboarding(
   department: string | undefined,
   clerkId: string,
   role: string | UserRole,
   telephone?: string,
 ) {
+  const { userId } = await auth();
+
+  if (!userId || userId !== clerkId) {
+    return { success: false, error: "Utilisateur non connecté" };
+  }
+
   try {
     const normalizedRole = normalizeUserRole(role);
-    await persistOnboardedUser(clerkId, normalizedRole, department, telephone);
+    await persistOnboardedUser(userId, normalizedRole, department, telephone);
     return { success: true, role: normalizedRole };
   } catch (error) {
     console.error(error);

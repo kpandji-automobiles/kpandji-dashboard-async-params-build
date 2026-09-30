@@ -4,6 +4,26 @@ import { prisma } from "../prisma";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 
+function parseStoredList(value: unknown): Record<string, unknown>[] {
+  if (value === null || value === undefined || value === "") {
+    return [];
+  }
+
+  const parsed: unknown = typeof value === "string" ? JSON.parse(value) : value;
+
+  if (
+    !Array.isArray(parsed) ||
+    !parsed.every(
+      (item) =>
+        typeof item === "object" && item !== null && !Array.isArray(item),
+    )
+  ) {
+    throw new Error("Format de liste invalide dans un rapport de rendez-vous.");
+  }
+
+  return parsed as Record<string, unknown>[];
+}
+
 function toStoredString(value: unknown): string | null {
   if (value == null) return null;
   if (typeof value === "string") return value;
@@ -41,7 +61,9 @@ export async function createRendezVous(data: {
     // Remap for frontend compatibility
     const serializedRendezVous = {
       ...rendezVous,
-      clientEntreprise: ((rendezVous as unknown) as { Client_entreprise: unknown }).Client_entreprise,
+      clientEntreprise: (
+        rendezVous as unknown as { Client_entreprise: unknown }
+      ).Client_entreprise,
     };
 
     // Link existing voitures to rendezvous if provided
@@ -141,24 +163,26 @@ export async function getAllRendezVous() {
     });
 
     // Remap User to user for frontend compatibility
-    const serializedRendezVous = (rendezVous as unknown[]).map((rv: unknown) => {
-      const r = rv as Record<string, unknown> & {
-        client?: Record<string, unknown> & { User?: unknown };
-        Client_entreprise?: Record<string, unknown> & { User?: unknown };
-      };
-      const commercial = r.client?.User || r.Client_entreprise?.User;
-      const commercialName = commercial
-        ? `${(commercial as { firstName?: string }).firstName || ""} ${(commercial as { lastName?: string }).lastName || ""}`.trim()
-        : "Non assigné";
-      return {
-        ...r,
-        client: r.client ? { ...r.client, user: r.client.User } : null,
-        clientEntreprise: r.Client_entreprise
-          ? { ...r.Client_entreprise, user: r.Client_entreprise.User }
-          : null,
-        commercialName,
-      };
-    });
+    const serializedRendezVous = (rendezVous as unknown[]).map(
+      (rv: unknown) => {
+        const r = rv as Record<string, unknown> & {
+          client?: Record<string, unknown> & { User?: unknown };
+          Client_entreprise?: Record<string, unknown> & { User?: unknown };
+        };
+        const commercial = r.client?.User || r.Client_entreprise?.User;
+        const commercialName = commercial
+          ? `${(commercial as { firstName?: string }).firstName || ""} ${(commercial as { lastName?: string }).lastName || ""}`.trim()
+          : "Non assigné";
+        return {
+          ...r,
+          client: r.client ? { ...r.client, user: r.client.User } : null,
+          clientEntreprise: r.Client_entreprise
+            ? { ...r.Client_entreprise, user: r.Client_entreprise.User }
+            : null,
+          commercialName,
+        };
+      },
+    );
 
     return { success: true, data: serializedRendezVous };
   } catch (error) {
@@ -222,27 +246,33 @@ export async function getRendezVousByUser(clerkUserId: string) {
     });
 
     // Remap for frontend compatibility
-    const serializedRendezVous = (rendezVous as unknown[]).map((rv: unknown) => {
-      const r = rv as Record<string, unknown> & {
-        client?: Record<string, unknown> & { Voiture?: unknown };
-        Client_entreprise?: Record<string, unknown> & { Voiture?: unknown };
-        Voiture?: unknown;
-        RapportRendezVous?: unknown;
-      };
-      return {
-        ...r,
-        client: r.client ? {
-          ...r.client,
-          voitures: r.client.Voiture,
-        } : null,
-        clientEntreprise: r.Client_entreprise ? {
-          ...r.Client_entreprise,
-          voitures: r.Client_entreprise.Voiture,
-        } : null,
-        voitures_souhaitees: r.Voiture,
-        rapportRendezVous: r.RapportRendezVous,
-      };
-    });
+    const serializedRendezVous = (rendezVous as unknown[]).map(
+      (rv: unknown) => {
+        const r = rv as Record<string, unknown> & {
+          client?: Record<string, unknown> & { Voiture?: unknown };
+          Client_entreprise?: Record<string, unknown> & { Voiture?: unknown };
+          Voiture?: unknown;
+          RapportRendezVous?: unknown;
+        };
+        return {
+          ...r,
+          client: r.client
+            ? {
+                ...r.client,
+                voitures: r.client.Voiture,
+              }
+            : null,
+          clientEntreprise: r.Client_entreprise
+            ? {
+                ...r.Client_entreprise,
+                voitures: r.Client_entreprise.Voiture,
+              }
+            : null,
+          voitures_souhaitees: r.Voiture,
+          rapportRendezVous: r.RapportRendezVous,
+        };
+      },
+    );
 
     return { success: true, data: serializedRendezVous };
   } catch (error) {
@@ -278,12 +308,11 @@ export async function updateRendezVous(
   } catch (error) {
     console.error("Error updating rendez-vous:", error);
     const errMsg = error instanceof Error ? error.message : String(error);
-    const msg =
-      errMsg.includes("Record to update not found")
-        ? "Rendez-vous introuvable."
-        : errMsg.includes("connect") || errMsg.includes("database")
-          ? "Impossible de joindre la base de données. Réessayez plus tard."
-          : `Erreur : ${errMsg}`;
+    const msg = errMsg.includes("Record to update not found")
+      ? "Rendez-vous introuvable."
+      : errMsg.includes("connect") || errMsg.includes("database")
+        ? "Impossible de joindre la base de données. Réessayez plus tard."
+        : `Erreur : ${errMsg}`;
     return { success: false, error: msg };
   }
 }
@@ -405,14 +434,24 @@ export async function createRapportRendezVous(
       return { success: false, error: "At least one voiture must be selected" };
     }
 
-    const clientInfo = rendezVous.client || ((rendezVous as unknown) as { Client_entreprise: Record<string, unknown> & { telephone: string } }).Client_entreprise;
+    const clientInfo =
+      rendezVous.client ||
+      (
+        rendezVous as unknown as {
+          Client_entreprise: Record<string, unknown> & { telephone: string };
+        }
+      ).Client_entreprise;
     if (!clientInfo) {
       return { success: false, error: "Client information not found" };
     }
 
     const clientName = rendezVous.client
       ? rendezVous.client.nom
-      : ((rendezVous as unknown) as { Client_entreprise?: { nom_entreprise: string } }).Client_entreprise?.nom_entreprise || "Non spécifié";
+      : (
+          rendezVous as unknown as {
+            Client_entreprise?: { nom_entreprise: string };
+          }
+        ).Client_entreprise?.nom_entreprise || "Non spécifié";
 
     const clientPhone = clientInfo.telephone;
     const clientType = rendezVous.client ? "Particulier" : "Entreprise";
@@ -552,8 +591,7 @@ export async function createRapportRendezVousComplet(data: {
     return { success: true, data: rapport };
   } catch (error) {
     console.error("Error creating complete rapport rendez-vous:", error);
-    const message =
-      error instanceof Error ? error.message : "Unknown error";
+    const message = error instanceof Error ? error.message : "Unknown error";
     const prismaCode =
       error && typeof error === "object" && "code" in error
         ? (error as { code?: string }).code
@@ -613,24 +651,30 @@ export async function getRapportRendezVousByUser(clerkUserId: string) {
     });
 
     // Remap for frontend compatibility
-    const serializedRapports = (rapports as unknown[]).map((rapport: unknown) => {
-      const r = rapport as Record<string, unknown> & {
-        Client?: unknown;
-        Client_entreprise?: unknown;
-        RendezVous?: unknown;
-        Voiture?: Record<string, unknown> & { VoitureModel?: unknown };
-      };
-      return {
-        ...r,
-        client: r.Client,
-        clientEntreprise: r.Client_entreprise,
-        rendezVous: r.RendezVous,
-        voiture: r.Voiture ? {
-          ...r.Voiture,
-          voitureModel: r.Voiture.VoitureModel,
-        } : null,
-      };
-    });
+    const serializedRapports = (rapports as unknown[]).map(
+      (rapport: unknown) => {
+        const r = rapport as Record<string, unknown> & {
+          Client?: unknown;
+          Client_entreprise?: unknown;
+          RendezVous?: unknown;
+          Voiture?: Record<string, unknown> & { VoitureModel?: unknown };
+        };
+        return {
+          ...r,
+          modeles_discutes: parseStoredList(r.modeles_discutes),
+          actions_suivi: parseStoredList(r.actions_suivi),
+          client: r.Client,
+          clientEntreprise: r.Client_entreprise,
+          rendezVous: r.RendezVous,
+          voiture: r.Voiture
+            ? {
+                ...r.Voiture,
+                voitureModel: r.Voiture.VoitureModel,
+              }
+            : null,
+        };
+      },
+    );
 
     return { success: true, data: serializedRapports };
   } catch (error) {
@@ -703,20 +747,13 @@ export async function updateRapportRendezVousComplet(
       updateData.profession_societe = data.profession_societe;
     if (data.type_client !== undefined)
       updateData.type_client = data.type_client;
-    if (data.Com_Pres !== undefined)
-      updateData.Com_Pres = data.Com_Pres;
-    if (data.Com_Drive !== undefined)
-      updateData.Com_Drive = data.Com_Drive;
-    if (data.Com_Achat !== undefined)
-      updateData.Com_Achat = data.Com_Achat;
-    if (data.Com_Livre !== undefined)
-      updateData.Com_Livre = data.Com_Livre;
-    if (data.Com_APV !== undefined)
-      updateData.Com_APV = data.Com_APV;
-    if (data.Com_Office !== undefined)
-      updateData.Com_Office = data.Com_Office;
-    if (data.Com_Close !== undefined)
-      updateData.Com_Close = data.Com_Close;
+    if (data.Com_Pres !== undefined) updateData.Com_Pres = data.Com_Pres;
+    if (data.Com_Drive !== undefined) updateData.Com_Drive = data.Com_Drive;
+    if (data.Com_Achat !== undefined) updateData.Com_Achat = data.Com_Achat;
+    if (data.Com_Livre !== undefined) updateData.Com_Livre = data.Com_Livre;
+    if (data.Com_APV !== undefined) updateData.Com_APV = data.Com_APV;
+    if (data.Com_Office !== undefined) updateData.Com_Office = data.Com_Office;
+    if (data.Com_Close !== undefined) updateData.Com_Close = data.Com_Close;
     if (data.objet_autre !== undefined)
       updateData.objet_autre = data.objet_autre;
     if (data.modeles_discutes !== undefined)
@@ -822,30 +859,38 @@ export async function getAllRapportRendezVous() {
     });
 
     // Remap for frontend compatibility
-    const serializedRapports = (rapports as unknown[]).map((rapport: unknown) => {
-      const r = rapport as Record<string, unknown> & {
-        Client?: Record<string, unknown> & { User?: unknown };
-        Client_entreprise?: Record<string, unknown> & { User?: unknown };
-        RendezVous?: unknown;
-        Voiture?: Record<string, unknown> & { VoitureModel?: unknown };
-      };
-      return {
-        ...r,
-        client: r.Client ? {
-          ...r.Client,
-          user: r.Client.User,
-        } : null,
-        clientEntreprise: r.Client_entreprise ? {
-          ...r.Client_entreprise,
-          user: r.Client_entreprise.User,
-        } : null,
-        rendezVous: r.RendezVous,
-        voiture: r.Voiture ? {
-          ...r.Voiture,
-          voitureModel: r.Voiture.VoitureModel,
-        } : null,
-      };
-    });
+    const serializedRapports = (rapports as unknown[]).map(
+      (rapport: unknown) => {
+        const r = rapport as Record<string, unknown> & {
+          Client?: Record<string, unknown> & { User?: unknown };
+          Client_entreprise?: Record<string, unknown> & { User?: unknown };
+          RendezVous?: unknown;
+          Voiture?: Record<string, unknown> & { VoitureModel?: unknown };
+        };
+        return {
+          ...r,
+          client: r.Client
+            ? {
+                ...r.Client,
+                user: r.Client.User,
+              }
+            : null,
+          clientEntreprise: r.Client_entreprise
+            ? {
+                ...r.Client_entreprise,
+                user: r.Client_entreprise.User,
+              }
+            : null,
+          rendezVous: r.RendezVous,
+          voiture: r.Voiture
+            ? {
+                ...r.Voiture,
+                voitureModel: r.Voiture.VoitureModel,
+              }
+            : null,
+        };
+      },
+    );
 
     return { success: true, data: serializedRapports };
   } catch (error) {
@@ -867,7 +912,10 @@ export async function getAllRapportRendezVous() {
       };
     }
 
-    return { success: false, error: "Impossible de charger les rapports de rendez-vous." };
+    return {
+      success: false,
+      error: "Impossible de charger les rapports de rendez-vous.",
+    };
   }
 }
 
@@ -1101,11 +1149,11 @@ export async function getRapportRendezVousByCommercialUsers() {
         reports: group.reports.sort(
           (a, b) =>
             new Date(b.date_rendez_vous).getTime() -
-            new Date(a.date_rendez_vous).getTime()
+            new Date(a.date_rendez_vous).getTime(),
         ),
       }))
       .sort((a, b) =>
-        a.conseiller_commercial.localeCompare(b.conseiller_commercial, "fr")
+        a.conseiller_commercial.localeCompare(b.conseiller_commercial, "fr"),
       );
 
     return {
@@ -1136,7 +1184,8 @@ export async function getRapportRendezVousByCommercialUsers() {
 
     return {
       success: false,
-      error: "Impossible de charger les rapports de rendez-vous des commerciaux.",
+      error:
+        "Impossible de charger les rapports de rendez-vous des commerciaux.",
     };
   }
 }

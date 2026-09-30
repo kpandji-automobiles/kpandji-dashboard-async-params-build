@@ -89,7 +89,7 @@ Each report beautifully displays:
 - 🎨 Gradient headers with hover effects
 - 📊 Report count badges
 - ⚡ Smooth expand/collapse animations
-- 🎯 Easy to scan and navigate
+- 🎯 Easy to scan and navigate 
 
 ---
 

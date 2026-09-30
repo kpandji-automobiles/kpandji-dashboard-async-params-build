@@ -28,7 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { completeUserOnboarding } from "@/lib/actions/onboarding";
 import { getRedirectForRole } from "@/lib/role-redirects";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/lib/user-role-constants";
 import {
   Select,
   SelectContent,

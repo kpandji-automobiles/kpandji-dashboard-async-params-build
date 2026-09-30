@@ -18,7 +18,7 @@ export default function Home() {
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                   <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl  overflow-hidden">
-                    <video
+                    {/* <video
                       src="/logoanime.mp4"
                       autoPlay
                       loop
@@ -29,7 +29,14 @@ export default function Home() {
                       aria-label="Logo KPANDJI animé"
                     >
                       <source src="/logoanime.mp4" type="video/mp4" />
-                    </video>
+                    </video> */}
+                    <img
+                      src="/public/LogoKpandjiNoir.svg"
+                      className="w-full"
+                      aria-label="Lego KPANDJI "
+                    >
+                      
+                    </img>
                   </div>
                 </div>
               </div>
