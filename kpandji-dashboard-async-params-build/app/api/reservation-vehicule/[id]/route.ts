@@ -7,49 +7,38 @@ import { getApprouvedUser } from "@/lib/require-approved-user";
 
 export const dynamic = "force-dynamic";
 
-async function getAuthUser(
-  body?: { clerkId?: string } | null,
-  url?: URL
-) {
-
-  let clerkId: string;
-  
-    try {
-      clerkId = await getApprouvedUser();
-    } catch {
-      return NextResponse.json(
-        { success: false, error: "Accès refusé" },
-        { status: 403 },
-      );
-    }
-    
-  let clerkId = (await auth()).userId;
-  if (!clerkId && body?.clerkUserId) clerkId = body.clerkUserId;
-  if (!clerkId && url) {
-    clerkId =
-      url.searchParams.get("userId") || url.searchParams.get("clerkUserId");
-  }
-  if (!clerkId) return null;
+async function getAuthUser(clerkId : string) {
   const userResult = await getOrCreateUser(clerkId);
   if (!userResult.success || !userResult.data) return null;
   return userResult.data;
 }
 
-const canManageAll =
-  (role: string) =>
-    role === "RESPONSABLE_COMMERCIAL" || role === "ADMIN";
+const canManageAll = (role: string) =>
+  role === "RESPONSABLE_COMMERCIAL" || role === "ADMIN";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
+
+    let clerkId: string;
+
+  try {
+    clerkId = await getApprouvedUser();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Accès refusé" },
+      { status: 403 },
+    );
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
-    const authUser = await getAuthUser(body, request.nextUrl);
+    const authUser = await getAuthUser(clerkId);
     if (!authUser) {
       return NextResponse.json(
         { success: false, error: "Non autorisé." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -65,7 +54,7 @@ export async function PATCH(
     if (!existing) {
       return NextResponse.json(
         { success: false, error: "Réservation introuvable." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -103,17 +92,28 @@ export async function PATCH(
       : existing.dateRetour;
     const dest = destination?.trim() ?? existing.destination;
     const mot = motif?.trim() ?? existing.motif;
-    const comm = commentaire !== undefined ? commentaire?.trim() || null : existing.commentaire;
+    const comm =
+      commentaire !== undefined
+        ? commentaire?.trim() || null
+        : existing.commentaire;
     const transport = moyenTransport?.trim() ?? existing.moyenTransport ?? "";
     const clientNom =
       clientOuEntrepriseNom !== undefined
         ? clientOuEntrepriseNom?.trim() || null
         : existing.clientOuEntrepriseNom;
     const heure = heure_reserve?.trim() ?? existing.heure_reserve;
-    const accomp = accompagnant !== undefined ? accompagnant?.trim() || null : existing.accompagnant;
-    const cout = coutTransport !== undefined
-      ? (typeof coutTransport === "number" ? coutTransport : parseFloat(String(coutTransport)) || 0)
-      : (existing.coutTransport ? Number(existing.coutTransport) : 0);
+    const accomp =
+      accompagnant !== undefined
+        ? accompagnant?.trim() || null
+        : existing.accompagnant;
+    const cout =
+      coutTransport !== undefined
+        ? typeof coutTransport === "number"
+          ? coutTransport
+          : parseFloat(String(coutTransport)) || 0
+        : existing.coutTransport
+          ? Number(existing.coutTransport)
+          : 0;
 
     await prisma.$transaction([
       prisma.reservationVehicule.update({
@@ -129,7 +129,16 @@ export async function PATCH(
           clientOuEntrepriseNom: clientNom,
           accompagnant: accomp,
           coutTransport: cout,
-          ...(statut && { statut: statut as "EN_ATTENTE" | "CONFIRME" | "ANNULE" | "DEPLACE" | "EFFECTUE" | "EN_COURS" | "TERMINEE" }),
+          ...(statut && {
+            statut: statut as
+              | "EN_ATTENTE"
+              | "CONFIRME"
+              | "ANNULE"
+              | "DEPLACE"
+              | "EFFECTUE"
+              | "EN_COURS"
+              | "TERMINEE",
+          }),
           updatedAt: new Date(),
         },
       }),
@@ -161,23 +170,30 @@ export async function PATCH(
     console.error("Error updating reservation vehicule:", error);
     const msg =
       error instanceof Error ? error.message : "Erreur lors de la mise à jour";
-    return NextResponse.json(
-      { success: false, error: msg },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  let clerkId: string;
+
   try {
-    const authUser = await getAuthUser(null, request.nextUrl);
+    clerkId = await getApprouvedUser();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Accès refusé" },
+      { status: 403 },
+    );
+  }
+  try {
+    const authUser = await getAuthUser(clerkId);
     if (!authUser) {
       return NextResponse.json(
         { success: false, error: "Non autorisé." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -192,7 +208,7 @@ export async function DELETE(
     if (!existing) {
       return NextResponse.json(
         { success: false, error: "Réservation introuvable." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -213,9 +229,6 @@ export async function DELETE(
     console.error("Error deleting reservation vehicule:", error);
     const msg =
       error instanceof Error ? error.message : "Erreur lors de la suppression";
-    return NextResponse.json(
-      { success: false, error: msg },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

@@ -6,10 +6,12 @@ export async function getApprouvedUser(){
 
     //Test si l'utilisateur est valide sinon refuse la session
 
-     const { userId } = await auth.protect()
+     const { userId } = await auth.protect() //si l'utilisateur n'a pas l'autorisation BLOQUE
+
+     //Ici utilisateur connecté
 
 
-     //Test après misa a jour de l'Etat de Clerk
+     //Mise a jour l'utilisateur courant de Clerk
 
      const user = await currentUser();
 
@@ -17,7 +19,7 @@ export async function getApprouvedUser(){
         throw new Error("Utilisateur non approuvé");
      }
 
-     return userId;
+     return userId; //retourne un string / pas un objet
 
 
 }
