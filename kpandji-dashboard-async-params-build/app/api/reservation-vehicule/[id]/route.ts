@@ -3,13 +3,26 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/actions/user";
 import { revalidatePath } from "next/cache";
+import { getApprouvedUser } from "@/lib/require-approved-user";
 
 export const dynamic = "force-dynamic";
 
 async function getAuthUser(
-  body?: { clerkUserId?: string } | null,
+  body?: { clerkId?: string } | null,
   url?: URL
 ) {
+
+  let clerkId: string;
+  
+    try {
+      clerkId = await getApprouvedUser();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Accès refusé" },
+        { status: 403 },
+      );
+    }
+    
   let clerkId = (await auth()).userId;
   if (!clerkId && body?.clerkUserId) clerkId = body.clerkUserId;
   if (!clerkId && url) {

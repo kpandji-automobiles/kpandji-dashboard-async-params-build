@@ -22,20 +22,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { completeUserOnboarding } from "@/lib/actions/onboarding";
-import { getRedirectForRole } from "@/lib/role-redirects";
-import { UserRole } from "@/lib/user-role-constants";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 
 const employeeSchema = z.object({
   firstName: z.string().min(1, "Prénoms obligatoire").max(55),
@@ -47,36 +37,42 @@ const employeeSchema = z.object({
 
 type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: "Admin",
-  MANAGER: "Manager",
-  COMMERCIAL: "Commercial",
-  CHEFUSINE: "Chef Usine",
-  CHEFEQUIPE: "Chef Équipe",
-  MAGASINIER: "Magasinier",
-  RH: "RH",
-  JURIDIQUE: "Juridique",
-  CHEFQUALITE: "Chef Qualité",
-  EMPLOYEE: "Employé",
-  SAV: "SAV",
-  LOGISTIQUE: "Logistique",
-  FINANCE: "Finance",
-  DIRECTEUR_GENERAL: "Directeur Général",
-  CLIENTELLE: "Clientèle",
-  COMPTABLE: "Comptable",
-  CONCESSIONAIRE: "Concessionnaire",
-  SUPERVISEUR: "Superviseur",
-  COMMUNICATION: "Communication",
-  RESPONSABLE_COMMERCIAL: "Responsable Commercial",
-  ASSISTANTE: "Assistante",
-  INFOGRAPHIE: "Infographie",
-  COMMUNITY_MANAGER: "Community Manager",
-  MARKETING: "Marketing",
-  DEVELOPPEUR: "Développeur",
-  DESIGNER: "Designer",
-};
+/* 
+Suppressions de const ROLE_LABELS  et USER_ROLE : 
 
-const USER_ROLES = Object.values(UserRole) as UserRole[];
+Le choix du rôle de l'employé sera attribué à l'admin
+
+*/
+
+//   ADMIN: "Admin",
+//   MANAGER: "Manager",
+//   COMMERCIAL: "Commercial",
+//   CHEFUSINE: "Chef Usine",
+//   CHEFEQUIPE: "Chef Équipe",
+//   MAGASINIER: "Magasinier",
+//   RH: "RH",
+//   JURIDIQUE: "Juridique",
+//   CHEFQUALITE: "Chef Qualité",
+//   EMPLOYEE: "Employé",
+//   SAV: "SAV",
+//   LOGISTIQUE: "Logistique",
+//   FINANCE: "Finance",
+//   DIRECTEUR_GENERAL: "Directeur Général",
+//   CLIENTELLE: "Clientèle",
+//   COMPTABLE: "Comptable",
+//   CONCESSIONAIRE: "Concessionnaire",
+//   SUPERVISEUR: "Superviseur",
+//   COMMUNICATION: "Communication",
+//   RESPONSABLE_COMMERCIAL: "Responsable Commercial",
+//   ASSISTANTE: "Assistante",
+//   INFOGRAPHIE: "Infographie",
+//   COMMUNITY_MANAGER: "Community Manager",
+//   MARKETING: "Marketing",
+//   DEVELOPPEUR: "Développeur",
+//   DESIGNER: "Designer",
+// };
+
+// const USER_ROLES = Object.values(UserRole) as UserRole[];
 
 interface OnboardingFormProps {
   userEmail: string;
@@ -90,9 +86,8 @@ const OnboardingForm = ({
   lastName,
 }: OnboardingFormProps) => {
   const { user, isLoaded } = useUser();
-  const { getToken } = useAuth();
-  const [accountType, setAccountType] = useState<UserRole>(UserRole.EMPLOYEE);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const employeeForm = useForm<EmployeeFormValues>({
@@ -118,27 +113,23 @@ const OnboardingForm = ({
     try {
       const response = await completeUserOnboarding(
         data.department || undefined,
-        user.id,
-        accountType,
         data.telephone || undefined,
       );
 
       if (!response?.success) {
-        setError(
-          response?.error ?? "Impossible de compléter l'inscription.",
-        );
+        setError(response?.error ?? "Impossible de compléter l'inscription.");
         return;
       }
 
-      toast.success("Compte créé avec succès.");
+       //Envoie la demande le compte n'est pas crée tant que l'administrateur ne l'a pas autorisé
 
-      // Refresh Clerk session so middleware sees the new role immediately
-      await user.reload();
-      await getToken({ skipCache: true });
-
-      const redirectPath = getRedirectForRole(response.role) ?? "/";
-      window.location.replace(redirectPath);
+      setIsSubmitted(true);
+      toast.success("Demande envoyée.");
       return;
+
+
+     
+
     } catch (submitError: unknown) {
       setError(
         submitError instanceof Error
@@ -160,6 +151,19 @@ const OnboardingForm = ({
       </div>
     );
   }
+
+  if (isSubmitted || user?.publicMetadata?.applicationSubmitted === true) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Demande envoyée</CardTitle>
+        <CardDescription>
+          Votre compte attend la validation d’un administrateur.
+        </CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-orange-200/50 bg-white/95 shadow-2xl backdrop-blur-xl">
@@ -184,27 +188,6 @@ const OnboardingForm = ({
           </CardHeader>
 
           <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <Label className="text-base font-semibold text-gray-700">
-                Type de compte
-              </Label>
-              <Select
-                value={accountType}
-                onValueChange={(value) => setAccountType(value as UserRole)}
-              >
-                <SelectTrigger className="border-gray-200 bg-white focus:border-orange-400 focus:ring-orange-400">
-                  <SelectValue placeholder="Sélectionnez un rôle" />
-                </SelectTrigger>
-                <SelectContent>
-                  {USER_ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {ROLE_LABELS[role]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <Separator className="bg-orange-200" />
 
             <Form {...employeeForm}>

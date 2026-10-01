@@ -4,28 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/actions/user";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { getApprouvedUser } from "@/lib/require-approved-user";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  try {
-    let clerkId = (await auth()).userId;
-    const clerkUserIdParam =
-      request.nextUrl.searchParams.get("userId") ||
-      request.nextUrl.searchParams.get("clerkUserId");
-    if (!clerkId && clerkUserIdParam) {
-      clerkId = clerkUserIdParam;
-    }
-    if (!clerkId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Non autorisé. Veuillez vous reconnecter.",
-        },
-        { status: 401 }
-      );
-    }
 
+  let clerkId: string;
+
+  try {
+    clerkId = await getApprouvedUser();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Accès refusé" },
+      { status: 403 },
+    );
+  }
+
+  try {
     const userResult = await getOrCreateUser(clerkId);
     if (!userResult.success || !userResult.data) {
       return NextResponse.json(
@@ -33,7 +29,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error: "Utilisateur introuvable.",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = userResult.data.id;
@@ -100,14 +96,24 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching reservation vehicule:", error);
     const msg =
       error instanceof Error ? error.message : "Erreur lors du chargement";
-    return NextResponse.json(
-      { success: false, error: msg },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+
+  
+let clerkId: string;
+
+  try {
+    clerkId = await getApprouvedUser();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Accès refusé" },
+      { status: 403 },
+    );
+  }
+
   try {
     let body: unknown;
     try {
@@ -115,22 +121,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json(
         { success: false, error: "Corps de requête invalide" },
-        { status: 400 }
-      );
-    }
-
-    let clerkId = (await auth()).userId;
-    // Fallback: use clerkUserId from body when auth() returns null (e.g. fetch from client)
-    if (!clerkId && (body as { clerkUserId?: string }).clerkUserId) {
-      clerkId = (body as { clerkUserId: string }).clerkUserId;
-    }
-    if (!clerkId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Non autorisé. Veuillez vous reconnecter et réessayer.",
-        },
-        { status: 401 }
+        { status: 400 },
       );
     }
 
@@ -139,9 +130,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Utilisateur introuvable. Vérifiez que vous êtes bien enregistré.",
+          error:
+            "Utilisateur introuvable. Vérifiez que vous êtes bien enregistré.",
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
     const userId = userResult.data.id;
@@ -184,7 +176,7 @@ export async function POST(request: NextRequest) {
           error:
             "moyenTransport, dateReservation, dateRetour, heure_reserve, destination et motif sont requis",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -195,7 +187,7 @@ export async function POST(request: NextRequest) {
           error:
             "rendezVousId est requis pour une réservation liée à un rendez-vous. Utilisez inopine: true pour un rendez-vous inopiné.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -276,7 +268,7 @@ export async function POST(request: NextRequest) {
           ? "Base de données inaccessible ou référence invalide. Vérifiez votre connexion."
           : msg,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
