@@ -1,22 +1,30 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/actions/user";
+import { getApprouvedUser } from "@/lib/require-approved-user";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  let callerClerkId;
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    callerClerkId = await getApprouvedUser();
+  } catch (error) {
+    console.error("Error user not approuved", error);
+    return NextResponse.json({ error: "User not approuved" }, { status: 403 });
+  }
+
+  try {
+    const userSearch = await prisma.user.findUnique({
+      where: {
+        clerkId: callerClerkId,
+      },
+    });
+    if (userSearch == null) {
+      return NextResponse.json({ error: "User null" }, { status: 404 });
     }
 
-    const userResult = await getOrCreateUser(clerkId);
-    if (!userResult.success || !userResult.data) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-    const currentUserId = userResult.data.id;
+    const currentUserId = userSearch.id;
 
     const users = await prisma.user.findMany({
       where: { id: { not: currentUserId } },
@@ -25,16 +33,41 @@ export async function GET() {
         firstName: true,
         lastName: true,
         email: true,
+        clerkId: true,
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     });
 
-    return NextResponse.json(users);
+    const clerk = await clerkClient();
+
+    const comptesVerifies = await Promise.all(
+      users.map(async (dbUser) => {
+        const clerkUser = await clerk.users.getUser(dbUser.clerkId);
+
+        return {
+          dbUser,
+          estApprouve: clerkUser.publicMetadata.onboardingCompleted === true,
+        };
+      }),
+    );
+
+    const finalUser = comptesVerifies.filter((user) => {
+      return user.estApprouve === true;
+    });
+
+    const lastTab = finalUser.map((item) => ({
+      id: item.dbUser.id,
+      firstName: item.dbUser.firstName,
+      lastName: item.dbUser.lastName,
+      email: item.dbUser.email,
+    }));
+
+    return NextResponse.json(lastTab);
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
