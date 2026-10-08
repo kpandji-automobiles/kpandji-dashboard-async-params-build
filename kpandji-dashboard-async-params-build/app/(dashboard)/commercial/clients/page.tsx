@@ -194,7 +194,6 @@ const ClientPage = () => {
 			} else {
 				const createData = {
 					...formData,
-					userId: user.id,
 					email: formData.email || undefined,
 					entreprise: formData.entreprise || undefined,
 					localisation: formData.localisation || undefined,

@@ -2,7 +2,8 @@
 
 import { prisma } from "../prisma";
 import { revalidatePath } from "next/cache";
-import { getOrCreateUser } from "./user";
+import { getApprouvedUser } from "../require-approved-user";
+import { clientSchema } from "../validation/client";
 
 export async function createClient(data: {
   nom: string;
@@ -12,51 +13,58 @@ export async function createClient(data: {
   secteur_activite?: string;
   localisation?: string;
   commercial?: string;
-  status_client?: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE";
-  userId: string;
+  status_client?:
+    | "CLIENT"
+    | "PROSPECT"
+    | "FAVORABLE"
+    | "A_SUIVRE"
+    | "ABANDONNE";
 }) {
-  try {
-    console.log("Creating client with data:", data);
-    
-    // Get or create user if it doesn't exist
-    const userResult = await getOrCreateUser(data.userId);
-    
-    if (!userResult.success || !userResult.data) {
-      console.error("Failed to get or create user for clerkId:", data.userId, userResult.error);
-      const err = userResult.error || "User not found";
-      const msg =
-        err.includes("email") ? "Profil incomplet : ajoutez un email dans vos paramètres Clerk."
-        : err.includes("Clerk") ? "Utilisateur introuvable. Reconnectez-vous."
-        : err.includes("authenticated") ? "Session expirée. Reconnectez-vous."
-        : `Erreur utilisateur : ${err}`;
-      return { success: false, error: msg };
+  
+    let userId;
+
+    try {
+      userId = await getApprouvedUser();
+    } catch (error) {
+      return { success: false, error: "Error user not approuved" };
     }
-    
-    const user = userResult.data;
-    console.log("Found/created user:", user.id);
-    
-    const clientData = {
+
+    const result = clientSchema.safeParse(data)
+    if (!result.success){
+      return { success: false, error: "Données invalide" }
+    }
+
+   
+    try {
+      const user = await prisma.user.findUnique({
+        where: {
+          clerkId: userId,
+        },
+      });
+
+      if (!user) {
+        return { success: false, error: "Utilisateur introuvable." };
+      }
+
+
+      const clientData = {
       id: crypto.randomUUID(),
-      nom: data.nom,
-      email: data.email || null,
-      telephone: data.telephone,
-      entreprise: data.entreprise || null,
-      secteur_activite: data.secteur_activite || null,
-      localisation: data.localisation || null,
-      commercial: data.commercial || null,
-      status_client: data.status_client || "PROSPECT", // Add status with default
+      nom: result.data.nom,
+      email: result.data.email || null,
+      telephone: result.data.telephone,
+      entreprise: result.data.entreprise || null,
+      secteur_activite: result.data.secteur_activite || null,
+      localisation: result.data.localisation || null,
+      commercial: result.data.commercial || null,
+      status_client: result.data.status_client, 
       userId: user.id,
       updatedAt: new Date(),
     };
-    
-    console.log("Creating client with data:", clientData);
-    
-    
+
     const client = await prisma.client.create({
       data: clientData,
     });
 
-    console.log("Client created successfully:", client);
     revalidatePath("/manager");
     revalidatePath("/commercial/prospects");
     return { success: true, data: client };
@@ -77,22 +85,21 @@ export async function createClient(data: {
 
 export async function getClient(id: string) {
   try {
-    
     const client = await prisma.client.findUnique({
       where: { id },
-      include: { User: true }
+      include: { User: true },
     });
-    
+
     if (!client) {
       return { success: false, error: "Client not found" };
     }
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       data: {
         ...client,
-        user: (client as { User?: unknown }).User
-      } 
+        user: (client as { User?: unknown }).User,
+      },
     };
   } catch (error) {
     console.error("Error fetching client:", error);
@@ -102,21 +109,20 @@ export async function getClient(id: string) {
 
 export async function getAllClients() {
   try {
-    
     const clients = await prisma.client.findMany({
       include: { User: true },
-      orderBy: { nom: 'asc' }
+      orderBy: { nom: "asc" },
     });
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       data: (clients as unknown[]).map((c: unknown) => {
         const item = c as Record<string, unknown> & { User?: unknown };
         return {
           ...item,
-          user: item.User
+          user: item.User,
         };
-      })
+      }),
     };
   } catch (error) {
     console.error("Error fetching clients:", error);
@@ -124,26 +130,27 @@ export async function getAllClients() {
   }
 }
 
-export async function getClientsByStatus(status: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE") {
+export async function getClientsByStatus(
+  status: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE",
+) {
   try {
-    
     const clients = await prisma.client.findMany({
       where: {
         status_client: status,
       },
       include: { User: true },
-      orderBy: { nom: 'asc' }
+      orderBy: { nom: "asc" },
     });
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       data: (clients as unknown[]).map((c: unknown) => {
         const item = c as Record<string, unknown> & { User?: unknown };
         return {
           ...item,
-          user: item.User
+          user: item.User,
         };
-      })
+      }),
     };
   } catch (error) {
     console.error("Error fetching clients by status:", error);
@@ -152,7 +159,7 @@ export async function getClientsByStatus(status: "CLIENT" | "PROSPECT" | "FAVORA
 }
 
 export async function getClientsByStatusWithCommandes(
-  status: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE"
+  status: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE",
 ) {
   try {
     const clients = await prisma.client.findMany({
@@ -188,31 +195,38 @@ export async function getClientsByStatusWithCommandes(
   }
 }
 
-export async function getClientsByStatusWithVoitures(status: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE") {
+export async function getClientsByStatusWithVoitures(
+  status: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE",
+) {
   try {
     const clients = await prisma.client.findMany({
       where: { status_client: status },
       include: {
         User: true,
         Voiture: {
-          include: { VoitureModel: true }
-        }
+          include: { VoitureModel: true },
+        },
       },
-      orderBy: { nom: 'asc' }
+      orderBy: { nom: "asc" },
     });
     return {
       success: true,
       data: (clients as unknown[]).map((c: unknown) => {
-        const item = c as Record<string, unknown> & { User?: unknown; Voiture?: unknown[] };
+        const item = c as Record<string, unknown> & {
+          User?: unknown;
+          Voiture?: unknown[];
+        };
         return {
           ...item,
           user: item.User,
           voitures: item.Voiture?.map((v: unknown) => {
-            const voiture = v as Record<string, unknown> & { VoitureModel?: unknown };
+            const voiture = v as Record<string, unknown> & {
+              VoitureModel?: unknown;
+            };
             return { ...voiture, voitureModel: voiture.VoitureModel };
-          })
+          }),
         };
-      })
+      }),
     };
   } catch (error) {
     console.error("Error fetching clients by status with voitures:", error);
@@ -220,64 +234,120 @@ export async function getClientsByStatusWithVoitures(status: "CLIENT" | "PROSPEC
   }
 }
 
-export async function updateClient(id: string, data: {
-  nom?: string;
-  email?: string;
-  telephone?: string;
-  entreprise?: string;
-  secteur_activite?: string;
-  localisation?: string;
-  commercial?: string;
-  status_client?: "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE";
-}) {
-  try {
-    console.log("Updating client with ID:", id);
-    console.log("Update data:", data);
-    
+export async function updateClient(
+  id: string,
+  data: {
+    nom?: string;
+    email?: string;
+    telephone?: string;
+    entreprise?: string;
+    secteur_activite?: string;
+    localisation?: string;
+    commercial?: string;
+    status_client?:
+      | "CLIENT"
+      | "PROSPECT"
+      | "FAVORABLE"
+      | "A_SUIVRE"
+      | "ABANDONNE";
+  },
+) {
+
+   let userApprouved;
+
+    try {
+      userApprouved = await getApprouvedUser();
+    } catch (error) {
+      return { success: false, error: "Error user not approuved" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {clerkId : userApprouved}
+    })
+
+    if(!user){
+       return { success: false, error: "Utilisateur introuvable." };
+    }
+
+    try {
+
     // First, check if the client exists and has a valid user relationship
-    
+
     const existingClient = await prisma.client.findUnique({
       where: { id },
-      include: { User: true }
+      include: { User: true },
     });
-    
+
     if (!existingClient) {
       return { success: false, error: "Client not found" };
     }
-    
-    console.log("Existing client found:", existingClient.nom, "User ID:", existingClient.userId);
-    
+
+    if(user.id !== existingClient.userId){
+      return {success: false, error :"Access refused"};
+    }
+
+
     // Verify that the associated user exists (this prevents foreign key constraint violations)
     if (!(existingClient as { User?: unknown }).User) {
-      console.error("Client exists but associated user is null:", existingClient.userId);
-      return { success: false, error: "Associated user not found. Please contact support." };
+      console.error(
+        "Client exists but associated user is null:",
+        existingClient.userId,
+      );
+      return {
+        success: false,
+        error: "Associated user not found. Please contact support.",
+      };
     }
-    
+
     // Explicitly exclude userId to prevent foreign key constraint violations
-    const { userId, ...safeData } = data as Record<string, unknown> & { userId?: unknown };
+    const { userId, ...safeData } = data as Record<string, unknown> & {
+      userId?: unknown;
+    };
     if (userId !== undefined) {
-      console.warn("Attempted to update userId field, which is not allowed. Ignoring userId:", userId);
+      console.warn(
+        "Attempted to update userId field, which is not allowed. Ignoring userId:",
+        userId,
+      );
     }
-    
+
     // Clean the data to ensure we don't accidentally update userId
     const updateData = {
       ...(safeData.nom !== undefined && { nom: safeData.nom as string }),
-      ...(safeData.email !== undefined && { email: safeData.email as string | null }),
-      ...(safeData.telephone !== undefined && { telephone: safeData.telephone as string }),
-      ...(safeData.entreprise !== undefined && { entreprise: safeData.entreprise as string | null }),
-      ...(safeData.secteur_activite !== undefined && { secteur_activite: safeData.secteur_activite as string | null }),
-      ...(safeData.localisation !== undefined && { localisation: safeData.localisation as string | null }),
-      ...(safeData.commercial !== undefined && { commercial: safeData.commercial as string | null }),
-      ...(safeData.status_client !== undefined && { status_client: safeData.status_client as "CLIENT" | "PROSPECT" | "FAVORABLE" | "A_SUIVRE" | "ABANDONNE" }),
+      ...(safeData.email !== undefined && {
+        email: safeData.email as string | null,
+      }),
+      ...(safeData.telephone !== undefined && {
+        telephone: safeData.telephone as string,
+      }),
+      ...(safeData.entreprise !== undefined && {
+        entreprise: safeData.entreprise as string | null,
+      }),
+      ...(safeData.secteur_activite !== undefined && {
+        secteur_activite: safeData.secteur_activite as string | null,
+      }),
+      ...(safeData.localisation !== undefined && {
+        localisation: safeData.localisation as string | null,
+      }),
+      ...(safeData.commercial !== undefined && {
+        commercial: safeData.commercial as string | null,
+      }),
+      ...(safeData.status_client !== undefined && {
+        status_client: safeData.status_client as
+          | "CLIENT"
+          | "PROSPECT"
+          | "FAVORABLE"
+          | "A_SUIVRE"
+          | "ABANDONNE",
+      }),
     };
-    
+
     console.log("Final update data (excluding userId):", updateData);
-    
+
     const client = await prisma.client.update({
       where: { id },
-      data: updateData
+      data: updateData,
     });
-    
+
     console.log("Client updated successfully:", client);
     revalidatePath("/manager");
     revalidatePath("/commercial/programme");
@@ -288,20 +358,50 @@ export async function updateClient(id: string, data: {
     if (error instanceof Error) {
       // Check for specific foreign key constraint error
       if (error.message.includes("Foreign key constraint violated")) {
-        return { success: false, error: "Invalid user reference. Please ensure the user exists in the system." };
+        return {
+          success: false,
+          error:
+            "Invalid user reference. Please ensure the user exists in the system.",
+        };
       }
-      return { success: false, error: `Failed to update client: ${error.message}` };
+      return {
+        success: false,
+        error: `Failed to update client: ${error.message}`,
+      };
     }
     return { success: false, error: "Failed to update client" };
   }
+
 }
 
 export async function deleteClient(id: string) {
+  let userApprouved;
+
   try {
-    await prisma.client.delete({
-      where: { id }
+    userApprouved = await getApprouvedUser();
+  } catch (error) {
+    return { success: false, error: "Error user not approuved" };
+  }
+
+   try {
+
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userApprouved },
+  });
+
+  if (!user) {
+    return { success: false, error: "Utilisateur introuvable." };
+  }
+
+ 
+    const result = await prisma.client.deleteMany({
+      where: { id, userId: user.id },
     });
-    
+
+    if (result.count !== 1){
+      return{success : false, error :"La suppression à échoué"}
+    }
+
     revalidatePath("/manager");
     revalidatePath("/commercial/prospects");
     return { success: true };
@@ -311,37 +411,39 @@ export async function deleteClient(id: string) {
   }
 }
 
-export async function getClientsByUserAndStatus(userId: string, status: "CLIENT" | "PROSPECT" | "ABANDONNE") {
+export async function getClientsByUserAndStatus(
+  userId: string,
+  status: "CLIENT" | "PROSPECT" | "ABANDONNE",
+) {
   try {
     const user = await prisma.user.findUnique({
       where: {
         clerkId: userId,
       },
     });
-    
+
     if (!user) {
       return { success: false, error: "User not found" };
     }
-    
-    
+
     const clients = await prisma.client.findMany({
       where: {
         userId: user.id,
         status_client: status,
       },
       include: { User: true },
-      orderBy: { nom: 'asc' }
+      orderBy: { nom: "asc" },
     });
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       data: (clients as unknown[]).map((c: unknown) => {
         const item = c as Record<string, unknown> & { User?: unknown };
         return {
           ...item,
-          user: item.User
+          user: item.User,
         };
-      })
+      }),
     };
   } catch (error) {
     console.error("Error fetching clients by user and status:", error);
@@ -352,7 +454,7 @@ export async function getClientsByUserAndStatus(userId: string, status: "CLIENT"
 export async function reassignClientProspect(
   id: string,
   newUserId: string,
-  newCommercialName: string
+  newCommercialName: string,
 ) {
   try {
     const client = await prisma.client.update({
@@ -374,25 +476,24 @@ export async function reassignClientProspect(
 
 export async function getProspectsByCommercial(commercialName: string) {
   try {
-    
     const clients = await prisma.client.findMany({
       where: {
         commercial: commercialName,
         status_client: "PROSPECT",
       },
       include: { User: true },
-      orderBy: { nom: 'asc' }
+      orderBy: { nom: "asc" },
     });
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       data: (clients as unknown[]).map((c: unknown) => {
         const item = c as Record<string, unknown> & { User?: unknown };
         return {
           ...item,
-          user: item.User
+          user: item.User,
         };
-      })
+      }),
     };
   } catch (error) {
     console.error("Error fetching prospects by commercial:", error);
@@ -407,29 +508,28 @@ export async function getClientsByUser(userId: string) {
         clerkId: userId,
       },
     });
-    
+
     if (!user) {
       return { success: false, error: "User not found" };
     }
-    
-    
+
     const clients = await prisma.client.findMany({
       where: {
         userId: user.id,
       },
       include: { User: true },
-      orderBy: { createdAt: 'desc' }  // Newest to oldest
+      orderBy: { createdAt: "desc" }, // Newest to oldest
     });
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       data: (clients as unknown[]).map((c: unknown) => {
         const item = c as Record<string, unknown> & { User?: unknown };
         return {
           ...item,
-          user: item.User
+          user: item.User,
         };
-      })
+      }),
     };
   } catch (error) {
     console.error("Error fetching clients by user:", error);

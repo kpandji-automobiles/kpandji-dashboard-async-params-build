@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,8 +24,8 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
 import { completeUserOnboarding } from "@/lib/actions/onboarding";
+import { useRouter } from "next/navigation";
 
 const employeeSchema = z.object({
   firstName: z.string().min(1, "Prénoms obligatoire").max(55),
@@ -87,8 +87,8 @@ const OnboardingForm = ({
 }: OnboardingFormProps) => {
   const { user, isLoaded } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const employeeForm = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -120,16 +120,12 @@ const OnboardingForm = ({
         setError(response?.error ?? "Impossible de compléter l'inscription.");
         return;
       }
+      
+      await user.reload();
 
-       //Envoie la demande le compte n'est pas crée tant que l'administrateur ne l'a pas autorisé
+      router.replace("/");
 
-      setIsSubmitted(true);
-      toast.success("Demande envoyée.");
       return;
-
-
-     
-
     } catch (submitError: unknown) {
       setError(
         submitError instanceof Error
@@ -152,18 +148,18 @@ const OnboardingForm = ({
     );
   }
 
-  if (isSubmitted || user?.publicMetadata?.applicationSubmitted === true) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Demande envoyée</CardTitle>
-        <CardDescription>
-          Votre compte attend la validation d’un administrateur.
-        </CardDescription>
-      </CardHeader>
-    </Card>
-  );
-}
+  if (user?.publicMetadata?.applicationSubmitted === true && user?.publicMetadata?.onboardingCompleted !== true) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Demande envoyée</CardTitle>
+          <CardDescription>
+            Votre compte attend la validation d’un administrateur.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-orange-200/50 bg-white/95 shadow-2xl backdrop-blur-xl">

@@ -1,7 +1,10 @@
 import { requireAdminUser } from "@/lib/require-admin";
+import { prisma } from "@/lib/prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import InviteForm from "./InviteForm";
+
 
 export default async function AdminPage({
   searchParams,
@@ -9,9 +12,9 @@ export default async function AdminPage({
   searchParams: Promise<{ page?: string }>;
 }) {
   try {
-    await requireAdminUser();
+    const adminUser = await requireAdminUser();
   } catch {
-    return notFound();
+    notFound();
   }
 
   const params = await searchParams;
@@ -21,45 +24,62 @@ export default async function AdminPage({
     redirect("/admin?page=1");
   }
 
-  const client = await clerkClient();
-
   const limit = 50;
   const offset = (page - 1) * limit;
+  const clerk = await clerkClient();
 
-  const { data: users, totalCount } = await client.users.getUserList({
+  const { data: users, totalCount } = await clerk.users.getUserList({
     limit,
     offset,
   });
 
-  const totalPages = Math.ceil(totalCount/limit)
+  const clerkIds = users.map((user) => user.id);
 
-  const pendingUsers = users.filter((user) => {
-    return (
-      user.publicMetadata?.applicationSubmitted === true &&
-      user.publicMetadata?.onboardingCompleted !== true
-    );
+  const dbUsers = await prisma.user.findMany({
+    where: {
+      clerkId: { in: clerkIds },
+    },
+    select: {
+      clerkId: true,
+      role: true,
+    },
   });
+
+
+  const roleByClerkId = new Map(
+    dbUsers.map((dbUser) => [dbUser.clerkId, dbUser.role]),
+  );
+
+  const totalPages = Math.ceil(totalCount / limit);
 
   return (
     <div>
       <h1>Page Administrateur {page}</h1>
 
-      {pendingUsers.map((user) => (
+      <InviteForm />
+
+      {users.map((user) => (
         <div key={user.id}>
-          <div>{user.firstName}</div>
-          <div>{user?.primaryEmailAddress?.emailAddress}</div>
-          <div>{user?.id}</div>
+          <div>
+            {[user.firstName, user.lastName].filter(Boolean).join(" ") ||
+              "Nom non renseigné"}
+          </div>
+          <div>{user.primaryEmailAddress?.emailAddress ?? "Email absent"}</div>
+          <div>{user.id}</div>
+          <div>
+            Rôle : {roleByClerkId.get(user.id) ?? "Inscription non terminée"}
+          </div>
+
+  
+          <br />
         </div>
       ))}
-      <div className="flex justify-between m-8 p-5">
-        {page > 1 && (
-            <Link href={`/admin?page=${page-1}`}>Précédent</Link>
-        )}
-        {page < totalPages && (
 
-           <Link href={`/admin?page=${page+1}`}>Suivant</Link>
+      <div className="flex justify-between m-8 p-5">
+        {page > 1 && <Link href={`/admin?page=${page - 1}`}>Précédent</Link>}
+        {page < totalPages && (
+          <Link href={`/admin?page=${page + 1}`}>Suivant</Link>
         )}
-    
       </div>
     </div>
   );

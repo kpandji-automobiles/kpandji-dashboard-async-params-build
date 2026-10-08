@@ -38,11 +38,15 @@ export async function POST(request: Request) {
       localisation: result.data.localisation || undefined,
       commercial: result.data.commercial || undefined,
       status_client: result.data.status_client || "PROSPECT",
-      userId,
     });
 
-    if(client.success === false){
-        return NextResponse.json({error:'Client creation failed'})
+    if (client.success === false) {
+      return NextResponse.json({
+        success: false,
+        error: "Client creation failed",
+        
+      },
+    {status:500},);
     }
 
     return NextResponse.json(client, { status: 201 });

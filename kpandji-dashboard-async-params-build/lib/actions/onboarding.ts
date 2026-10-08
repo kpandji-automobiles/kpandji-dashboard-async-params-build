@@ -2,6 +2,7 @@
 
 import { clerkClient, auth } from "@clerk/nextjs/server";
 import { prisma } from "../prisma";
+import { UserRole } from "../user-role-constants";
 
 async function persistOnboardedUser(
   clerkId: string,
@@ -20,10 +21,23 @@ async function persistOnboardedUser(
     throw new Error("L'inscription est déjà terminé");
   }
 
+  const userRole = user.publicMetadata.role;
+
+      if (!Object.values(UserRole).includes(userRole as UserRole)) {
+         throw new Error("Role");
+        }
+
+  if(userRole === "ADMIN" || userRole === "EMPLOYEE"){
+    throw new Error("User did not figure in the role.");
+  }
+
+  const roleValable = userRole as UserRole;
+
   const userData = {
     email,
     firstName: user.firstName,
     lastName: user.lastName,
+    role: roleValable,
 
     department,
     telephone,
@@ -58,8 +72,8 @@ async function persistOnboardedUser(
     await clerkClient()
   ).users.updateUserMetadata(user.id, {
     publicMetadata: {
-      applicationSubmitted: true,
-      onboardingCompleted: false,
+      applicationSubmitted: false,
+      onboardingCompleted: true,
 
       ...(department !== undefined && { department }),
       ...(telephone !== undefined && { telephone }),
@@ -78,7 +92,7 @@ export async function completeUserOnboarding(
   const { userId } = await auth();
 
   if (!userId) {
-    return { success: false, error: "Utilisateur non connecté" };
+    return {success :false, error: "No userId"}
   }
 
   try {
