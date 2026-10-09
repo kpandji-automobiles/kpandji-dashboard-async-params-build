@@ -250,10 +250,6 @@ const clerkHandler = clerkMiddleware(async (auth, req: NextRequest) => {
 			if (effectiveRole === role) {
 				return NextResponse.next();
 			}
-			// Generic employees land on the manager dashboard
-			if (role === "MANAGER" && effectiveRole === UserRole.EMPLOYEE) {
-				return NextResponse.next();
-			}
 			return NextResponse.redirect(new URL("/", req.url));
 		}
 	}

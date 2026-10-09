@@ -114,7 +114,7 @@ export async function getOrCreateUser(clerkId?: string) {
 
       if (shouldPreferDatabaseRole(dbUser.role, clerkRole)) {
         await syncClerkPublicRole(targetClerkId, dbUser.role);
-      } else if (dbUser.role !== clerkRole && clerkRole !== UserRole.EMPLOYEE) {
+      } else if (dbUser.role !== clerkRole) {
         dbUser = await executeWithRetry(() =>
           prisma.user.update({
             where: { id: dbUser!.id },

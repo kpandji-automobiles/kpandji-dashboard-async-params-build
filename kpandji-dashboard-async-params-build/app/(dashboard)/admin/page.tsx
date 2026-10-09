@@ -4,7 +4,11 @@ import { clerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import InviteForm from "./InviteForm";
-
+import RoleEditor from "./RoleEditor";
+import DeactivateButton from "./DeactivateButton";
+import { UserRole } from "@/lib/user-role-constants";
+import UserProfileEditor from "./UserProfileEditor";
+import { UserProfile } from "@clerk/nextjs";
 
 export default async function AdminPage({
   searchParams,
@@ -45,7 +49,6 @@ export default async function AdminPage({
     },
   });
 
-
   const roleByClerkId = new Map(
     dbUsers.map((dbUser) => [dbUser.clerkId, dbUser.role]),
   );
@@ -58,22 +61,44 @@ export default async function AdminPage({
 
       <InviteForm />
 
-      {users.map((user) => (
-        <div key={user.id}>
-          <div>
-            {[user.firstName, user.lastName].filter(Boolean).join(" ") ||
-              "Nom non renseigné"}
-          </div>
-          <div>{user.primaryEmailAddress?.emailAddress ?? "Email absent"}</div>
-          <div>{user.id}</div>
-          <div>
-            Rôle : {roleByClerkId.get(user.id) ?? "Inscription non terminée"}
-          </div>
+      {users.map((user) => {
+        const currentRole = roleByClerkId.get(user.id);
+        return (
+          <div key={user.id}>
+            <UserProfileEditor{
+              
+            }/>
+            <div>
+              {[user.firstName, user.lastName].filter(Boolean).join(" ") ||
+                "Nom non renseigné"}
+            </div>
+            <div>
+              {user.primaryEmailAddress?.emailAddress ?? "Email absent"}
+            </div>
+            <div>{user.id}</div>
+            <div>Rôle : {currentRole ?? "Inscription non terminée"}</div>
+            <div>
+              {currentRole !== undefined && currentRole !== UserRole.ADMIN && (
+            
+                  <div>
+                    Modifier :
+                    <RoleEditor clerkId={user.id} currentRole={currentRole} />
+                  </div>
 
-  
-          <br />
-        </div>
-      ))}
+                 
+              
+              )}
+              {currentRole !== UserRole.ADMIN && user.publicMetadata.role !== UserRole.ADMIN && (
+                 <div>
+                    <DeactivateButton clerkId={user.id} banned={user.banned} />
+                  </div>
+              )}
+            </div>
+
+            <br />
+          </div>
+        );
+      })}
 
       <div className="flex justify-between m-8 p-5">
         {page > 1 && <Link href={`/admin?page=${page - 1}`}>Précédent</Link>}

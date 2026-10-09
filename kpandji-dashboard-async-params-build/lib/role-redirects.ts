@@ -3,7 +3,7 @@ import { type UserRole } from "./user-role-constants";
 
 export const ROLE_REDIRECTS: Record<UserRole, string> = {
   ADMIN: "/admin",
-  EMPLOYEE: "/manager",
+  EMPLOYEE: "/sans-role",
   MANAGER: "/manager",
   MAGASINIER: "/magasinier",
   CHEFUSINE: "/chefusine",
