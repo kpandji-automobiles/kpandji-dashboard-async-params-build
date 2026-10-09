@@ -95,7 +95,7 @@ const Header = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
                     Bienvenue, {user.firstName}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {user.emailAddresses?.[0]?.emailAddress}
+                    {user.primaryEmailAddress?.emailAddress}
                   </p>
                 </>
               ) : (

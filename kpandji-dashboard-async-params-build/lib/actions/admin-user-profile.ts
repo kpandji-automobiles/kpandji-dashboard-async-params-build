@@ -49,7 +49,7 @@ export default async function updateUserProfile(
       },
     });
     if (oldUser) {
-      const targetUpdateUser = await prisma.user.update({
+       await prisma.user.update({
         where: {
           clerkId: targetClerkId,
         },
@@ -71,6 +71,7 @@ export default async function updateUserProfile(
         firstName: oldClerkProfile.firstName ?? "",
         lastName: oldClerkProfile.lastName ?? "",
       });
+      
 
       await client.users.updateUserMetadata(targetUser.id, {
         publicMetadata: {
@@ -81,7 +82,7 @@ export default async function updateUserProfile(
 
       return {
         success: false,
-        error: "Modification échouée ; ancien profil Clerk restauré.",
+        error: "Modification échouée ; vérification manuelle nécessaire.",
       };
     } catch (rollbackError) {
       console.error("Échec de la restauration Clerk :", rollbackError);

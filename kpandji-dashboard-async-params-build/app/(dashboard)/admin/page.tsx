@@ -8,7 +8,7 @@ import RoleEditor from "./RoleEditor";
 import DeactivateButton from "./DeactivateButton";
 import { UserRole } from "@/lib/user-role-constants";
 import UserProfileEditor from "./UserProfileEditor";
-import { UserProfile } from "@clerk/nextjs";
+import requestUserEmailChange from "@/lib/actions/admin-user-email-profile";
 
 export default async function AdminPage({
   searchParams,
@@ -63,15 +63,24 @@ export default async function AdminPage({
 
       {users.map((user) => {
         const currentRole = roleByClerkId.get(user.id);
+
         return (
           <div key={user.id}>
-            <UserProfileEditor{
-              
-            }/>
-            <div>
-              {[user.firstName, user.lastName].filter(Boolean).join(" ") ||
-                "Nom non renseigné"}
-            </div>
+            <UserProfileEditor
+              user={{
+                clerkId: user.id,
+                firstName: user.firstName ?? "",
+                lastName: user.lastName ?? "",
+                department:
+                  typeof user.publicMetadata.department === "string"
+                    ? user.publicMetadata.department
+                    : "",
+                telephone:
+                  typeof user.publicMetadata.telephone === "string"
+                    ? user.publicMetadata.telephone
+                    : "",
+              }}
+            />
             <div>
               {user.primaryEmailAddress?.emailAddress ?? "Email absent"}
             </div>
@@ -79,20 +88,17 @@ export default async function AdminPage({
             <div>Rôle : {currentRole ?? "Inscription non terminée"}</div>
             <div>
               {currentRole !== undefined && currentRole !== UserRole.ADMIN && (
-            
-                  <div>
-                    Modifier :
-                    <RoleEditor clerkId={user.id} currentRole={currentRole} />
-                  </div>
-
-                 
-              
+                <div>
+                  Modifier le rôle :
+                  <RoleEditor clerkId={user.id} currentRole={currentRole} />
+                </div>
               )}
-              {currentRole !== UserRole.ADMIN && user.publicMetadata.role !== UserRole.ADMIN && (
-                 <div>
+              {currentRole !== UserRole.ADMIN &&
+                user.publicMetadata.role !== UserRole.ADMIN && (
+                  <div>
                     <DeactivateButton clerkId={user.id} banned={user.banned} />
                   </div>
-              )}
+                )}
             </div>
 
             <br />
