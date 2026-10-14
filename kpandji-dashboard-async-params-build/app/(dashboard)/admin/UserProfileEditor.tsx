@@ -45,7 +45,7 @@ export default function UserProfileEditor({ user }: Props) {
       } else {
         setEmailMessage(result.error || "Try : Echec de la mise à jour du profil ");
       }
-    } catch (error) {
+    } catch {
       setEmailMessage("Catch : Echec de la mise à jour du profil");
     } finally {
       setIsSubmitting(false);
@@ -75,7 +75,7 @@ export default function UserProfileEditor({ user }: Props) {
       } else {
         setMessage(result.error || "Try : Echec de la mise à jour du profil ");
       }
-    } catch (error) {
+    } catch {
       setMessage("Catch : Echec de la mise à jour du profil");
     } finally {
       setIsSubmitting(false);
@@ -83,43 +83,42 @@ export default function UserProfileEditor({ user }: Props) {
   }
 
   return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <input
-          name="firstName"
-          defaultValue={user.firstName}
-          placeholder="Prénom"
-        />
-
-        <input name="lastName" defaultValue={user.lastName} placeholder="Nom" />
-
-        <input
-          name="department"
-          defaultValue={user.department}
-          placeholder="Departement"
-        />
-
-        <input
-          name="telephone"
-          defaultValue={user.telephone}
-          placeholder="Telephone"
-        />
-
-        <button type="submit" disabled={isSubmitting}>
-          Modifier
+    <div className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[
+            { name: "firstName", label: "Prénom", value: user.firstName },
+            { name: "lastName", label: "Nom", value: user.lastName },
+            { name: "department", label: "Service", value: user.department },
+            { name: "telephone", label: "Téléphone", value: user.telephone },
+          ].map(({ name, label, value }) => (
+            <label key={name} className="block text-sm font-medium text-slate-700">
+              {label}
+              <input
+                name={name}
+                type={name === "telephone" ? "tel" : "text"}
+                defaultValue={value}
+                required={name === "firstName" || name === "lastName"}
+                className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200"
+              />
+            </label>
+          ))}
+        </div>
+        <button type="submit" disabled={isSubmitting} className="min-h-10 rounded-lg bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:opacity-60">
+          Enregistrer le profil
         </button>
-
-        {message && <p>{message}</p>}
+        {message && <p role="status" aria-live="polite" className="text-sm text-slate-600">{message}</p>}
       </form>
-      <form onSubmit={handleEmailSubmit}>
-        <input name="emailAddress" type="email" placeholder="Email?" required/>
-
-        <button type="submit" disabled={isSubmitting}>
-          Demander le changement d'email
+      <form onSubmit={handleEmailSubmit} className="space-y-3 border-t border-slate-100 pt-5">
+        <label className="block text-sm font-medium text-slate-700">
+          Nouvelle adresse email
+          <input name="emailAddress" type="email" placeholder="nouveau@entreprise.com" required className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200" />
+        </label>
+        <p className="text-xs text-slate-500">L’adresse doit être vérifiée avant de devenir principale.</p>
+        <button type="submit" disabled={isSubmitting} className="min-h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:opacity-60">
+          Demander le changement d’email
         </button>
-
-        {emailMessage && <p>{emailMessage}</p>}
-
+        {emailMessage && <p role="status" aria-live="polite" className="text-sm text-slate-600">{emailMessage}</p>}
       </form>
     </div>
   );

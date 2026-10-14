@@ -45,6 +45,7 @@ export default async function confirmUserEmailChange(
       primaryEmailAddressID: emailToPromote.id,
     });
   } catch (error) {
+    console.error(error)
     return {
       success: false,
       error: "Erreur : La modification du mail n'a pas pu être effectué",
@@ -60,7 +61,7 @@ export default async function confirmUserEmailChange(
       },
     });
 
-    return { success: true, message: "Adresse email modifiée" };
+    return { success: true, message: "Adresse principale modifiée" };
   } catch (error) {
     console.error(error)
     try {
@@ -71,14 +72,14 @@ export default async function confirmUserEmailChange(
       return {
         
         success: false,
-        error: "CRestauration Clerk échouée : vérifier manuellement Clerk et Prisma",
+        error: "Ancienne adresse principale à été restaurée",
       };
     } catch (error) {
         console.error(error)
       return {
         success: false,
         error:
-          "Changement annulé.",
+          "Restauration échoué : une verification manuelle est nécessaire.",
       };
     }
   }

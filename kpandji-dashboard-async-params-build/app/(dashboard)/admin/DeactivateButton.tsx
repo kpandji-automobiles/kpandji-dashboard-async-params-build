@@ -30,7 +30,7 @@ export default function DeactivateButton(props: {
           setMessage(result.error ?? "Erreur");
           return;
         }
-      } catch (error) {
+      } catch {
         setMessage("Impossible de désactiver le compte");
         return;
       } finally {
@@ -48,7 +48,7 @@ export default function DeactivateButton(props: {
           setMessage(result.error ?? "Erreur");
           return;
         }
-      } catch (error) {
+      } catch {
         setMessage("Impossible de réactiver le compte");
         return;
       } finally {
@@ -61,10 +61,10 @@ export default function DeactivateButton(props: {
 
   return (
     <form onSubmit={handleSubmit}>
-      <button type="submit" disabled={isSubmitting}>
+      <button type="submit" disabled={isSubmitting} className={`min-h-10 rounded-lg border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:opacity-60 ${props.banned ? "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100" : "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100"}`}>
         {props.banned ? "Réactiver" : "Désactiver"}
       </button>
-      {message && <p>{message}</p>}
+      {message && <p role="status" aria-live="polite" className="mt-2 text-sm text-slate-600">{message}</p>}
     </form>
   );
 }
