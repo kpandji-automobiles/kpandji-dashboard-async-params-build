@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { getApprouvedUser } from "@/lib/require-approved-user";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     let userId = (await auth()).userId;
-    const bodyUserId = request.nextUrl.searchParams.get("userId");
+    const bodyUserId = await getApprouvedUser();
+
+    if(bodyUserId === null){
+      return NextResponse.json(
+        {success : false, error : "L'User n'est pas approuvé"},
+        {status : 403}
+      )
+    }
     if (!userId && bodyUserId) userId = bodyUserId;
     if (!userId) {
       return NextResponse.json(
