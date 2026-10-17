@@ -1,60 +1,48 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApprouvedUser } from "@/lib/require-approved-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
+  let userId: string;
+
   try {
-    let userId = (await auth()).userId;
-    const bodyUserId = await getApprouvedUser();
+    userId = await getApprouvedUser();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "L'User n'est pas approuvé" },
+      { status: 403 },
+    );
+  }
 
-    if(bodyUserId === null){
-      return NextResponse.json(
-        {success : false, error : "L'User n'est pas approuvé"},
-        {status : 403}
-      )
-    }
-    if (!userId && bodyUserId) userId = bodyUserId;
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: "Non authentifié. Reconnectez-vous." },
-        { status: 401 }
-      );
-    }
-
+  try {
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
     if (!user) {
       return NextResponse.json(
         { success: false, error: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const clients = await prisma.client.findMany({
       where: { userId: user.id },
-      include: { User: true },
       orderBy: { createdAt: "desc" },
     });
 
-    const data = clients.map((c) => ({
-      ...c,
-      user: (c as { User?: unknown }).User,
-    }));
+    const data = clients
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error("API getClients error:", error);
+    console.error(error);
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Erreur lors du chargement",
+        error: "Erreur lors du chargement",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

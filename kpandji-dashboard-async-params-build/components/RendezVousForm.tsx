@@ -46,11 +46,10 @@ const rendezVousSchema = z.object({
 type RendezVousFormData = z.infer<typeof rendezVousSchema>;
 
 interface RendezVousFormProps {
-  clerkUserId: string;
   onSuccess?: () => void;
 }
 
-export function RendezVousForm({ clerkUserId, onSuccess }: RendezVousFormProps) {
+export function RendezVousForm({ onSuccess }: RendezVousFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
@@ -74,8 +73,8 @@ export function RendezVousForm({ clerkUserId, onSuccess }: RendezVousFormProps) 
       try {
         setLoadingClients(true);
         const [clientsRes, clientEntreprisesRes] = await Promise.all([
-          fetch(`/api/prospects/clients?userId=${encodeURIComponent(clerkUserId)}`),
-          fetch(`/api/prospects/client-entreprises?userId=${encodeURIComponent(clerkUserId)}`),
+          fetch(`/api/prospects/clients}`),
+          fetch(`/api/prospects/client-entreprises}`),
         ]);
         const [clientsResult, clientEntreprisesResult] = await Promise.all([
           clientsRes.json().catch(() => ({ success: false })),
@@ -97,7 +96,7 @@ export function RendezVousForm({ clerkUserId, onSuccess }: RendezVousFormProps) 
     };
 
     fetchClients();
-  }, [clerkUserId]);
+  }, );
 
   const onSubmit = async (data: RendezVousFormData) => {
     setIsSubmitting(true);

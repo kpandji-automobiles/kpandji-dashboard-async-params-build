@@ -152,7 +152,6 @@ export default function RendezVousPage() {
 								</Button>
 								<div className="w-full sm:w-auto sm:min-w-0 [&_button]:w-full sm:[&_button]:w-auto">
 									<RendezVousForm
-										clerkUserId={user.id}
 										onSuccess={fetchRendezVous}
 									/>
 								</div>

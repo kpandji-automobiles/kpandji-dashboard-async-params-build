@@ -4,6 +4,7 @@ import { prisma } from "../prisma";
 import { revalidatePath } from "next/cache";
 import { getApprouvedUser } from "../require-approved-user";
 import { clientSchema } from "../validation/client";
+import { UserRole } from "../user-role-constants";
 
 export async function createClient(data: {
   nom: string;
@@ -20,34 +21,31 @@ export async function createClient(data: {
     | "A_SUIVRE"
     | "ABANDONNE";
 }) {
-  
-    let userId;
+  let userId;
 
-    try {
-      userId = await getApprouvedUser();
-    } catch (error) {
-      return { success: false, error: "Error user not approuved" };
+  try {
+    userId = await getApprouvedUser();
+  } catch (error) {
+    return { success: false, error: "Error user not approuved" };
+  }
+
+  const result = clientSchema.safeParse(data);
+  if (!result.success) {
+    return { success: false, error: "Données invalide" };
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        clerkId: userId,
+      },
+    });
+
+    if (!user) {
+      return { success: false, error: "Utilisateur introuvable." };
     }
 
-    const result = clientSchema.safeParse(data)
-    if (!result.success){
-      return { success: false, error: "Données invalide" }
-    }
-
-   
-    try {
-      const user = await prisma.user.findUnique({
-        where: {
-          clerkId: userId,
-        },
-      });
-
-      if (!user) {
-        return { success: false, error: "Utilisateur introuvable." };
-      }
-
-
-      const clientData = {
+    const clientData = {
       id: crypto.randomUUID(),
       nom: result.data.nom,
       email: result.data.email || null,
@@ -56,7 +54,7 @@ export async function createClient(data: {
       secteur_activite: result.data.secteur_activite || null,
       localisation: result.data.localisation || null,
       commercial: result.data.commercial || null,
-      status_client: result.data.status_client, 
+      status_client: result.data.status_client,
       userId: user.id,
       updatedAt: new Date(),
     };
@@ -252,25 +250,23 @@ export async function updateClient(
       | "ABANDONNE";
   },
 ) {
+  let userApprouved;
 
-   let userApprouved;
+  try {
+    userApprouved = await getApprouvedUser();
+  } catch (error) {
+    return { success: false, error: "Error user not approuved" };
+  }
 
-    try {
-      userApprouved = await getApprouvedUser();
-    } catch (error) {
-      return { success: false, error: "Error user not approuved" };
-    }
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userApprouved },
+  });
 
-    const user = await prisma.user.findUnique({
-      where: {clerkId : userApprouved}
-    })
+  if (!user) {
+    return { success: false, error: "Utilisateur introuvable." };
+  }
 
-    if(!user){
-       return { success: false, error: "Utilisateur introuvable." };
-    }
-
-    try {
-
+  try {
     // First, check if the client exists and has a valid user relationship
 
     const existingClient = await prisma.client.findUnique({
@@ -279,13 +275,12 @@ export async function updateClient(
     });
 
     if (!existingClient) {
-      return { success: false, error: "Client not found" };
+      return { success: false, error: "Client not found", reason: "NOT_FOUND" };
     }
 
-    if(user.id !== existingClient.userId){
-      return {success: false, error :"Access refused"};
+    if (user.id !== existingClient.userId) {
+      return { success: false, error: "Access refused", reason: "FORBIDDEN" };
     }
-
 
     // Verify that the associated user exists (this prevents foreign key constraint violations)
     if (!(existingClient as { User?: unknown }).User) {
@@ -371,7 +366,6 @@ export async function updateClient(
     }
     return { success: false, error: "Failed to update client" };
   }
-
 }
 
 export async function deleteClient(id: string) {
@@ -383,23 +377,25 @@ export async function deleteClient(id: string) {
     return { success: false, error: "Error user not approuved" };
   }
 
-   try {
-
-  const user = await prisma.user.findUnique({
-    where: { clerkId: userApprouved },
-  });
-
-  if (!user) {
-    return { success: false, error: "Utilisateur introuvable." };
-  }
-
- 
-    const result = await prisma.client.deleteMany({
-      where: { id, userId: user.id },
+  try {
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userApprouved },
     });
 
-    if (result.count !== 1){
-      return{success : false, error :"La suppression à échoué"}
+    if (!user) {
+      return { success: false, error: "Utilisateur introuvable." };
+    }
+
+    const canDeleteAny =
+      user.role === UserRole.ADMIN || user.role === UserRole.MANAGER;
+
+
+    const result = await prisma.client.deleteMany({
+      where: canDeleteAny ? { id: id } : { id: id, userId: user.id },
+    });
+
+    if (result.count !== 1) {
+      return { success: false, error: "La suppression à échoué", reason: "NOT_FOUND" };
     }
 
     revalidatePath("/manager");
@@ -536,4 +532,3 @@ export async function getClientsByUser(userId: string) {
     return { success: false, error: "Failed to fetch clients" };
   }
 }
-

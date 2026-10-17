@@ -1,52 +1,81 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { createClientEntreprise } from "@/lib/actions/client_entreprise";
+import { getApprouvedUser } from "@/lib/require-approved-user";
+import { clientEntrepriseSchema } from "@/lib/validation/client-entreprise";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+
+
   try {
-    let userId = (await auth()).userId;
-    const body = await request.json();
-    if (!userId && body.userId) {
-      userId = body.userId;
-    }
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: "Non authentifié. Reconnectez-vous." },
-        { status: 401 }
-      );
-    }
+     await getApprouvedUser();
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: "L'utilisateur n'a pas été approuvé" },
+      { status: 403 },
+    );
+  }
+
+  let body;
+
+  try{
+
+    body = await request.json();
+   
+  }catch{
+
+     return NextResponse.json(
+      { success: false, error: "JSON illisible" },
+      { status: 400 },
+    );
+
+  }
+
+   const validation = clientEntrepriseSchema.safeParse(body)
+
+   if(validation.success === false ){
+    return NextResponse.json(
+      {success:false, error : "Données invalides"},
+      {status : 400},
+    )
+   }
+
+
+  try {
+    
 
     const result = await createClientEntreprise({
-      nom_entreprise: body.nom_entreprise,
-      sigle: body.sigle || undefined,
-      email: body.email || undefined,
-      telephone: body.telephone,
-      nom_personne_contact: body.nom_personne_contact || undefined,
-      fonction_personne_contact: body.fonction_personne_contact || undefined,
-      email_personne_contact: body.email_personne_contact || undefined,
-      telephone_personne_contact: body.telephone_personne_contact || undefined,
-      localisation: body.localisation || undefined,
-      secteur_activite: body.secteur_activite || undefined,
-      flotte_vehicules: body.flotte_vehicules || false,
+      nom_entreprise: validation.data.nom_entreprise,
+      sigle: validation.data.sigle || undefined,
+      email: validation.data.email || undefined,
+      telephone: validation.data.telephone,
+      nom_personne_contact: validation.data.nom_personne_contact || undefined,
+      fonction_personne_contact: validation.data.fonction_personne_contact || undefined,
+      email_personne_contact: validation.data.email_personne_contact || undefined,
+      telephone_personne_contact: validation.data.telephone_personne_contact || undefined,
+      localisation: validation.data.localisation || undefined,
+      secteur_activite: validation.data.secteur_activite || undefined,
+      flotte_vehicules: validation.data.flotte_vehicules || false,
       flotte_vehicules_description:
-        body.flotte_vehicules_description || undefined,
-      commercial: body.commercial || undefined,
-      status_client: body.status_client || "PROSPECT",
-      userId,
+        validation.data.flotte_vehicules_description || undefined,
+      commercial: validation.data.commercial || undefined,
+      status_client: validation.data.status_client || "PROSPECT",
     });
 
-    return NextResponse.json(result);
+    if(result.success === false){
+      return NextResponse.json({success : false, error : "Echec"}, {status : 500})
+    }
+
+    return NextResponse.json(result , {status : 201});
   } catch (error) {
     console.error("API createClientEntreprise error:", error);
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Erreur lors de la création",
+        error: "Erreur lors de la création"
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

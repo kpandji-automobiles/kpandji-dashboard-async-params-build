@@ -53,12 +53,12 @@ import {
 import { toast } from "sonner";
 import { SECTEUR_ACTIVITE_OPTIONS } from "@/lib/constants/secteur-activite";
 
-async function fetchClients(userId: string) {
-	const res = await fetch(`/api/prospects/clients?userId=${encodeURIComponent(userId)}`);
+async function fetchClients() {
+	const res = await fetch(`/api/prospects/clients`);
 	return res.json();
 }
-async function fetchClientEntreprises(userId: string) {
-	const res = await fetch(`/api/prospects/client-entreprises?userId=${encodeURIComponent(userId)}`);
+async function fetchClientEntreprises() {
+	const res = await fetch(`/api/prospects/client-entreprises}`);
 	return res.json();
 }
 async function updateClientApi(id: string, data: Record<string, unknown>) {
@@ -190,8 +190,8 @@ const ProspectsPage = () => {
 					try {
 						const [clientsResult, clientEntreprisesResult] =
 							await Promise.all([
-								fetchClients(user.id),
-								fetchClientEntreprises(user.id),
+								fetchClients(),
+								fetchClientEntreprises(),
 							]);
 
 						if (clientsResult.success && clientsResult.data) {
@@ -291,8 +291,8 @@ const ProspectsPage = () => {
 					try {
 						const [clientsResult, clientEntreprisesResult] =
 							await Promise.all([
-								fetchClients(user.id),
-								fetchClientEntreprises(user.id),
+								fetchClients(),
+								fetchClientEntreprises(),
 							]);
 
 						if (clientsResult.success && clientsResult.data) {
@@ -828,7 +828,6 @@ const ProspectsPage = () => {
 								</div>
 								<div className="p-6">
 									<ClientEntrepriseForm
-										userId={user.id}
 										userName={`${user.firstName || ""} ${user.lastName || ""}`.trim()}
 										onSuccess={handleFormSuccess}
 									/>

@@ -5,6 +5,8 @@ import {
   deleteClientEntreprise,
 } from "@/lib/actions/client_entreprise";
 import { revalidatePath } from "next/cache";
+import { getApprouvedUser } from "@/lib/require-approved-user";
+import { clientEntrepriseSchema } from "@/lib/validation/client-entreprise";
 
 export const dynamic = "force-dynamic";
 
@@ -13,33 +15,67 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    let userId = (await auth()).userId;
-    const body = await request.json();
-    if (!userId && body.userId) userId = body.userId;
-    if (!userId) {
+      await getApprouvedUser();
+    } catch {
       return NextResponse.json(
-        { success: false, error: "Non authentifié. Reconnectez-vous." },
-        { status: 401 }
+        { success: false, error: "Utilisateur non approuvé" },
+        { status: 403 },
+      );
+    }
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "JSON illisible" },
+        { status: 400 },
       );
     }
 
+     const validation = clientEntrepriseSchema.partial().safeParse(body)
+    
+       if(validation.success === false ){
+        return NextResponse.json(
+          {success:false, error : "Données invalides"},
+          {status : 400},
+        )
+       }
+    
+
+    try{
+
     const { id } = await params;
     const result = await updateClientEntreprise(id, {
-      nom_entreprise: body.nom_entreprise,
-      sigle: body.sigle,
-      email: body.email,
-      telephone: body.telephone,
-      nom_personne_contact: body.nom_personne_contact,
-      fonction_personne_contact: body.fonction_personne_contact,
-      email_personne_contact: body.email_personne_contact,
-      telephone_personne_contact: body.telephone_personne_contact,
-      localisation: body.localisation,
-      secteur_activite: body.secteur_activite,
-      flotte_vehicules: body.flotte_vehicules,
-      flotte_vehicules_description: body.flotte_vehicules_description,
-      commercial: body.commercial,
-      status_client: body.status_client,
+      nom_entreprise: validation.data.nom_entreprise,
+      sigle: validation.data.sigle,
+      email: validation.data.email,
+      telephone: validation.data.telephone,
+      nom_personne_contact: validation.data.nom_personne_contact,
+      fonction_personne_contact: validation.data.fonction_personne_contact,
+      email_personne_contact: validation.data.email_personne_contact,
+      telephone_personne_contact: validation.data.telephone_personne_contact,
+      localisation: validation.data.localisation,
+      secteur_activite: validation.data.secteur_activite,
+      flotte_vehicules: validation.data.flotte_vehicules,
+      flotte_vehicules_description: validation.data.flotte_vehicules_description,
+      commercial: validation.data.commercial,
+      status_client: validation.data.status_client,
     });
+
+     if (!result.success) {
+      if ("reason" in result && result.reason === "NOT_FOUND") {
+        return NextResponse.json(result, { status: 404 });
+      }
+
+      if ("reason" in result && result.reason === "FORBIDDEN") {
+        return NextResponse.json(result, { status: 403 });
+      }
+
+      return NextResponse.json(
+        { success: false, error: "Modification impossible" },
+        { status: 500 },
+      );
+    }
 
     revalidatePath("/commercial/prospects");
     return NextResponse.json(result);
@@ -48,8 +84,7 @@ export async function PATCH(
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Erreur lors de la mise à jour",
+        error: "Erreur lors de la mise à jour",
       },
       { status: 500 }
     );
