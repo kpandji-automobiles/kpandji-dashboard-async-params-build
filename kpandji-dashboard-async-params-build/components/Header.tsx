@@ -40,6 +40,7 @@ const Header = ({ toggleSidebar }: { toggleSidebar?: () => void }) => {
   const pathname = usePathname();
 
   const section = pathname.split("/")[1];
+  const homeHref = SETTINGS_SECTIONS.has(section) ? `/${section}` : "/";
   const settingsHref = SETTINGS_SECTIONS.has(section)
     ? `/${section}/parametres`
     : null;
@@ -71,13 +72,17 @@ const Header = ({ toggleSidebar }: { toggleSidebar?: () => void }) => {
               </button>
             )}
 
-            <div className="flex items-center gap-3">
+            <Link
+              href={homeHref}
+              className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              aria-label="Retour à la page principale"
+            >
               <Image
-                src="/logo.png"
-                alt="Logo"
-                width={40}
-                height={40}
-                className="h-8 w-auto"
+                src="/LogoKpandjiNoir.svg"
+                alt="Logo Kpandji"
+                width={64}
+                height={49}
+                className="h-12 w-auto shrink-0 object-contain"
                 priority
               />
               <div className="hidden sm:block">
@@ -86,7 +91,7 @@ const Header = ({ toggleSidebar }: { toggleSidebar?: () => void }) => {
                 </h1>
                 <p className="text-xs text-gray-500">Board de gestion</p>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Center Section - Search */}

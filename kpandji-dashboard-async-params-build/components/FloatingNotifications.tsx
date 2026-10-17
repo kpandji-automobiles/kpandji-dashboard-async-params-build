@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, ExternalLink, Sparkles, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -86,38 +86,8 @@ export default function FloatingNotifications({
 }) {
   const [list, setList] = useState<AppNotification[]>([]);
   const [filter, setFilter] = useState<"unread" | "all">("unread");
-  const [open, setOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => subscribeToAppNotifications(setList), []);
-
-  useEffect(() => {
-    return () => {
-      if (closeTimer.current !== null) clearTimeout(closeTimer.current);
-    };
-  }, []);
-
-  function cancelClose() {
-    if (closeTimer.current !== null) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  }
-
-  function openOnHover(event: React.PointerEvent<HTMLElement>) {
-    if (placement !== "header" || event.pointerType !== "mouse") return;
-    cancelClose();
-    setOpen(true);
-  }
-
-  function closeAfterHover(event: React.PointerEvent<HTMLElement>) {
-    if (placement !== "header" || event.pointerType !== "mouse") return;
-    cancelClose();
-    closeTimer.current = setTimeout(() => {
-      setOpen(false);
-      closeTimer.current = null;
-    }, 200);
-  }
 
   const unreadCount = useMemo(() => list.filter((n) => !n.read).length, [list]);
   const filtered = useMemo(() => {
@@ -131,13 +101,7 @@ export default function FloatingNotifications({
         placement === "header" ? "relative" : "fixed bottom-5 right-5 z-[9999]"
       }
     >
-      <Popover
-        open={open}
-        onOpenChange={(nextOpen) => {
-          cancelClose();
-          setOpen(nextOpen);
-        }}
-      >
+      <Popover>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -149,8 +113,6 @@ export default function FloatingNotifications({
             }
             variant={placement === "header" ? "ghost" : "default"}
             aria-label="Ouvrir les notifications"
-            onPointerEnter={openOnHover}
-            onPointerLeave={closeAfterHover}
           >
             <Bell className="h-5 w-5 drop-shadow" />
             {unreadCount > 0 && (
@@ -165,8 +127,6 @@ export default function FloatingNotifications({
           align="end"
           side={placement === "header" ? "bottom" : "top"}
           className="z-[9999] w-[380px] p-0 overflow-hidden rounded-xl border bg-white shadow-2xl shadow-black/10"
-          onPointerEnter={openOnHover}
-          onPointerLeave={closeAfterHover}
         >
           <div className="relative border-b">
             <div className="absolute inset-0 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50" />

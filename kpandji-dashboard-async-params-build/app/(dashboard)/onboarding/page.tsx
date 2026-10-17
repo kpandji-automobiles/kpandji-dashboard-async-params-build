@@ -17,12 +17,12 @@ export default async function OnboardingPage() {
       <div className="grid w-full max-w-5xl items-center gap-8 lg:grid-cols-[1fr_1.2fr]">
         <div className="flex justify-center">
           <Image
-            src="/logo.png"
+            src="/LogoKpandjiNoir.svg"
             alt="KPANDJI logo"
             width={280}
-            height={90}
+            height={212}
             priority
-            className="dark:invert"
+            className="h-auto w-full max-w-[280px] object-contain"
           />
         </div>
 

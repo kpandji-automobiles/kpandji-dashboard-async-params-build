@@ -31,9 +31,9 @@ export default function Home() {
                       <source src="/logoanime.mp4" type="video/mp4" />
                     </video> */}
                     <img
-                      src="/public/LogoKpandjiNoir.svg"
+                      src="/LogoKpandjiNoir.svg"
                       className="w-full"
-                      aria-label="Lego KPANDJI "
+                      alt="Logo Kpandji"
                     >
                       
                     </img>
