@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, CheckCheck, ExternalLink, Sparkles, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import {
   clearAppNotifications,
@@ -30,7 +34,9 @@ function typeLabel(type: AppNotification["type"]) {
   }
 }
 
-function typeBadgeVariant(type: AppNotification["type"]): React.ComponentProps<typeof Badge>["variant"] {
+function typeBadgeVariant(
+  type: AppNotification["type"],
+): React.ComponentProps<typeof Badge>["variant"] {
   switch (type) {
     case "success":
       return "default";
@@ -64,17 +70,54 @@ function typeAccent(type: AppNotification["type"]) {
 
 function formatTime(ts: number) {
   try {
-    return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(ts));
+    return new Intl.DateTimeFormat("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(ts));
   } catch {
     return "";
   }
 }
 
-export default function FloatingNotifications() {
+export default function FloatingNotifications({
+  placement = "floating",
+}: {
+  placement?: "floating" | "header";
+}) {
   const [list, setList] = useState<AppNotification[]>([]);
   const [filter, setFilter] = useState<"unread" | "all">("unread");
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => subscribeToAppNotifications(setList), []);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current !== null) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  function cancelClose() {
+    if (closeTimer.current !== null) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }
+
+  function openOnHover(event: React.PointerEvent<HTMLElement>) {
+    if (placement !== "header" || event.pointerType !== "mouse") return;
+    cancelClose();
+    setOpen(true);
+  }
+
+  function closeAfterHover(event: React.PointerEvent<HTMLElement>) {
+    if (placement !== "header" || event.pointerType !== "mouse") return;
+    cancelClose();
+    closeTimer.current = setTimeout(() => {
+      setOpen(false);
+      closeTimer.current = null;
+    }, 200);
+  }
 
   const unreadCount = useMemo(() => list.filter((n) => !n.read).length, [list]);
   const filtered = useMemo(() => {
@@ -83,14 +126,31 @@ export default function FloatingNotifications() {
   }, [filter, list]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-[9999]">
-      <Popover>
+    <div
+      className={
+        placement === "header" ? "relative" : "fixed bottom-5 right-5 z-[9999]"
+      }
+    >
+      <Popover
+        open={open}
+        onOpenChange={(nextOpen) => {
+          cancelClose();
+          setOpen(nextOpen);
+        }}
+      >
         <PopoverTrigger asChild>
           <Button
             type="button"
             size="icon"
-            className="relative h-12 w-12 rounded-full shadow-lg shadow-amber-500/25 bg-gradient-to-br from-amber-600 via-yellow-500 to-amber-400 hover:from-amber-600 hover:via-yellow-500 hover:to-amber-400 text-white border border-white/25"
+            className={
+              placement === "header"
+                ? "relative h-9 w-9 transition-colors hover:bg-amber-50 hover:text-amber-700"
+                : "relative h-12 w-12 rounded-full shadow-lg shadow-amber-500/25 bg-gradient-to-br from-amber-600 via-yellow-500 to-amber-400 hover:from-amber-600 hover:via-yellow-500 hover:to-amber-400 text-white border border-white/25"
+            }
+            variant={placement === "header" ? "ghost" : "default"}
             aria-label="Ouvrir les notifications"
+            onPointerEnter={openOnHover}
+            onPointerLeave={closeAfterHover}
           >
             <Bell className="h-5 w-5 drop-shadow" />
             {unreadCount > 0 && (
@@ -103,8 +163,10 @@ export default function FloatingNotifications() {
 
         <PopoverContent
           align="end"
-          side="top"
+          side={placement === "header" ? "bottom" : "top"}
           className="z-[9999] w-[380px] p-0 overflow-hidden rounded-xl border bg-white shadow-2xl shadow-black/10"
+          onPointerEnter={openOnHover}
+          onPointerLeave={closeAfterHover}
         >
           <div className="relative border-b">
             <div className="absolute inset-0 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50" />
@@ -116,9 +178,13 @@ export default function FloatingNotifications() {
                       <Sparkles className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
-                      <div className="font-semibold text-sm text-gray-900">Notifications</div>
+                      <div className="font-semibold text-sm text-gray-900">
+                        Notifications
+                      </div>
                       <div className="text-xs text-gray-600 truncate">
-                        {unreadCount > 0 ? `${unreadCount} non lue(s)` : "Tout est à jour"}
+                        {unreadCount > 0
+                          ? `${unreadCount} non lue(s)`
+                          : "Tout est à jour"}
                       </div>
                     </div>
                   </div>
@@ -157,7 +223,7 @@ export default function FloatingNotifications() {
                   size="sm"
                   className={
                     filter === "unread"
-                        ? "bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-400 text-white hover:opacity-95"
+                      ? "bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-400 text-white hover:opacity-95"
                       : "bg-white/70 hover:bg-white"
                   }
                   onClick={() => setFilter("unread")}
@@ -193,7 +259,9 @@ export default function FloatingNotifications() {
                   <Bell className="h-5 w-5 text-violet-700" />
                 </div>
                 <div className="text-sm font-semibold text-gray-900">
-                  {filter === "unread" ? "Aucune notification non lue" : "Aucune notification"}
+                  {filter === "unread"
+                    ? "Aucune notification non lue"
+                    : "Aucune notification"}
                 </div>
                 <div className="mt-1 text-sm text-gray-500">
                   {filter === "unread"
@@ -208,20 +276,29 @@ export default function FloatingNotifications() {
                     <div className="relative px-4 py-3 transition-colors hover:bg-gray-50/80">
                       <div className="absolute left-0 top-0 h-full w-1 bg-transparent group-hover:bg-gray-200" />
                       {!n.read && (
-                        <div className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b ${typeAccent(n.type)}`} />
+                        <div
+                          className={`absolute left-0 top-0 h-full w-1 bg-gradient-to-b ${typeAccent(n.type)}`}
+                        />
                       )}
 
                       <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 h-2.5 w-2.5 rounded-full bg-gradient-to-br ${typeAccent(n.type)}`} />
+                        <div
+                          className={`mt-0.5 h-2.5 w-2.5 rounded-full bg-gradient-to-br ${typeAccent(n.type)}`}
+                        />
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant={typeBadgeVariant(n.type)} className="text-[11px]">
+                            <Badge
+                              variant={typeBadgeVariant(n.type)}
+                              className="text-[11px]"
+                            >
                               {typeLabel(n.type)}
                             </Badge>
-                            <span className="text-xs text-gray-400">{formatTime(n.createdAt)}</span>
+                            <span className="text-xs text-gray-400">
+                              {formatTime(n.createdAt)}
+                            </span>
                             {!n.read && (
-                            <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                              <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
                                 Nouveau
                               </span>
                             )}
@@ -254,4 +331,3 @@ export default function FloatingNotifications() {
     </div>
   );
 }
-

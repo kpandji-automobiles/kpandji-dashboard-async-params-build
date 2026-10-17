@@ -193,7 +193,7 @@ function isRouteActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-const SidebarCommercial = ({ isOpen }: { isOpen: boolean }) => {
+const SidebarCommercial = ({ isOpen, onNavigate }: { isOpen: boolean, onNavigate:() => void }) => {
   const pathname = usePathname();
 
   const groupedItems = navItems.reduce((acc, item) => {
@@ -238,6 +238,7 @@ const SidebarCommercial = ({ isOpen }: { isOpen: boolean }) => {
                 "active:scale-[0.98]"
               )
         )}
+        onClick={onNavigate}
         aria-label={item.label}
         aria-current={isActive ? "page" : undefined}
       >

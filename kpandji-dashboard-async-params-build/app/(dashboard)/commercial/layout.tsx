@@ -41,10 +41,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           isSidebarOpen ? "lg:w-64" : "lg:w-20",
           "w-[min(16rem,calc(100vw-1rem))] sm:w-64",
           "lg:translate-x-0",
-          isSidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full max-lg:pointer-events-none"
+          isSidebarOpen
+            ? "max-lg:translate-x-0"
+            : "max-lg:-translate-x-full max-lg:pointer-events-none",
         )}
       >
-        <SidebarCommercial isOpen={isSidebarOpen} />
+        <SidebarCommercial
+          isOpen={isSidebarOpen}
+          onNavigate={() => {
+            if (window.matchMedia("(max-width: 1023px)").matches) {
+              setIsSidebarOpen(false);
+            }
+          }}
+        />
       </div>
 
       {/* Mobile overlay — behind sidebar so drawer stays interactive */}
@@ -53,7 +62,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         aria-label="Fermer le menu"
         className={clsx(
           "lg:hidden fixed inset-0 z-40 bg-white/65 backdrop-blur-sm transition-opacity",
-          isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          isSidebarOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none",
         )}
         onClick={() => setIsSidebarOpen(false)}
       />
